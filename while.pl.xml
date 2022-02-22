@@ -1,0 +1,21 @@
+<program>
+    <main>
+        <assign variable="a">
+            <integer value="10" />
+        </assign>
+        <while>
+            <value variable="a" />
+            <do>
+                <print>
+                    <value variable="a" />
+                </print>
+                <assign variable="a">
+                    <subtract>
+                        <value variable="a" />
+                        <integer value="1" />
+                    </subtract>
+                </assign>
+            </do>
+        </while>
+    </main>
+</program>

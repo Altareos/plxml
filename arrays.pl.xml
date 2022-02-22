@@ -1,0 +1,60 @@
+<program name="arrays">
+    <function name="sum">
+        <arguments>
+            <argument name="arr" />
+        </arguments>
+        <body>
+            <assign variable="s">
+                <integer value="0" />
+            </assign>
+            <each variable="n">
+                <value variable="arr" />
+                <do>
+                    <assign variable="s">
+                        <add>
+                            <value variable="s" />
+                            <value variable="n" />
+                        </add>
+                    </assign>
+                </do>
+            </each>
+            <return>
+                <value variable="s" />
+            </return>
+        </body>
+    </function>
+    <main>
+        <assign variable="a">
+            <array />
+        </assign>
+        <for variable="i">
+            <from><integer value="0" /></from>
+            <to><integer value="3" /></to>
+            <step><integer value="1" /></step>
+            <do>
+                <insert-array>
+                    <array><value variable="a" /></array>
+                    <value><value variable="i" /></value>
+                </insert-array>
+            </do>
+        </for>
+        <print>
+            <call function="sum">
+                <arguments>
+                    <value variable="a" />
+                </arguments>
+            </call>
+        </print>
+        <print>
+            <call function="sum">
+                <arguments>
+                    <array>
+                        <integer value="11"/>
+                        <integer value="13"/>
+                        <integer value="12"/>
+                    </array>
+                </arguments>
+            </call>
+        </print>
+    </main>
+</program>

@@ -1,0 +1,17 @@
+<program>
+    <main>
+        <if>
+            <integer value="1" />
+            <then>
+                <print>
+                    <string value="TRUE" />
+                </print>
+            </then>
+            <else>
+                <print>
+                        <string value="FALSE" />
+                </print>
+            </else>
+        </if>
+    </main>
+</program>

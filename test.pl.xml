@@ -1,0 +1,31 @@
+<program name="test">
+    <function name="add_one">
+        <arguments>
+            <argument name="x" />
+        </arguments>
+        <body>
+            <return>
+                <add>
+                    <value variable="x" />
+                    <integer value="1" />
+                </add>
+            </return>
+        </body>
+    </function>
+    <main>
+        <assign variable="a">
+            <integer value="5" />
+        </assign>
+        <assign variable="b">
+            <call>
+                <value variable="add_one" />
+                <arguments>
+                    <value variable="a" />
+                </arguments>
+            </call>
+        </assign>
+        <print>
+            <value variable="b" />
+        </print>
+    </main>
+</program>

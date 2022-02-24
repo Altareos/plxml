@@ -832,6 +832,10 @@ mod stl {
             String::from("array-length"),
             Value::StdFunction(array_length),
         );
+        ctx.assign(String::from("to-ascii"), Value::StdFunction(to_ascii));
+        ctx.assign(String::from("from-ascii"), Value::StdFunction(from_ascii));
+        ctx.assign(String::from("get-args"), Value::StdFunction(get_args));
+
     }
 
     fn print(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
@@ -962,6 +966,48 @@ mod stl {
             }
         } else {
             Err("bad argument count in call to 'array-length'")?
+        }
+    }
+
+    fn to_ascii(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
+        if vals.len() == 1 {
+            if let Value::Integer(i) = &vals[0] {
+                if i <= &255 {
+                    Ok(Some(Value::String(String::from_utf8(vec![*i as u8])?)))
+                } else {
+                    Err("invalid integer in call to 'to-ascii'")?
+                }
+            } else {
+                Err("invalid argument in call to 'to-ascii'")?
+            }
+        } else {
+            Err("bad argument count in call to 'to-ascii'")?
+        }
+    }
+
+    fn from_ascii(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
+        if vals.len() == 1 {
+            if let Value::String(s) = &vals[0] {
+                if s.len() == 1 {
+                    Ok(Some(Value::Integer(s.as_bytes()[0] as i64)))
+                } else {
+                    Err("invalid string in call to 'from-ascii'")?
+                }
+            } else {
+                Err("invalid argument in call to 'from-ascii'")?
+            }
+        } else {
+            Err("bad argument count in call to 'from-ascii'")?
+        }
+    }
+
+    fn get_args(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
+        if vals.len() == 0 {
+            Ok(Some(Value::Array(Rc::new(RefCell::new(
+                std::env::args().skip(1).map(|arg| Value::String(arg)).collect()
+            )))))
+        } else {
+            Err("bad argument count in call to 'get-args'")?
         }
     }
 }

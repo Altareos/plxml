@@ -3,8 +3,13 @@
         <assign variable="prog">
             <call function="string-split">
                 <arguments>
-                    <call function="input">
-                        <arguments />
+                    <call function="array-get">
+                        <arguments>
+                            <call function="get-args">
+                                <arguments />
+                            </call>
+                            <integer value="1" />
+                        </arguments>
                     </call>
                     <string value="" />
                 </arguments>
@@ -19,9 +24,47 @@
         <assign variable="t">
             <array />
         </assign>
+        <assign variable="found">
+            <integer value="0" />
+        </assign>
+        <assign variable="inp">
+            <integer value="0" />
+        </assign>
+        <each variable="c">
+            <value variable="prog" />
+            <do>
+                <if>
+                    <and>
+                        <equal>
+                            <value variable="found" />
+                            <integer value="0" />
+                        </equal>
+                        <equal>
+                            <value variable="c" />
+                            <string value="," />
+                        </equal>
+                    </and>
+                    <then>
+                        <assign variable="in">
+                            <call function="string-split">
+                                <arguments>
+                                    <call function="input">
+                                        <arguments />
+                                    </call>
+                                    <string value="" />
+                                </arguments>
+                            </call>
+                        </assign>
+                        <assign variable="found">
+                            <integer value="1" />
+                        </assign>
+                    </then>
+                </if>
+            </do>
+        </each>
         <for variable="_">
             <from><integer value="0" /></from>
-            <to><integer value="100" /></to>
+            <to><integer value="10" /></to>
             <step><integer value="1" /></step>
             <do>
                 <call function="array-push">
@@ -134,10 +177,14 @@
                                                     <then>
                                                         <call function="print">
                                                             <arguments>
-                                                                <call function="array-get">
+                                                                <call function="to-ascii">
                                                                     <arguments>
-                                                                        <value variable="t" />
-                                                                        <value variable="p" />
+                                                                        <call function="array-get">
+                                                                            <arguments>
+                                                                                <value variable="t" />
+                                                                                <value variable="p" />
+                                                                            </arguments>
+                                                                        </call>
                                                                     </arguments>
                                                                 </call>
                                                             </arguments>
@@ -150,7 +197,28 @@
                                                                 <value variable="c" />
                                                             </equal>
                                                             <then>
-                                                                
+                                                                <call function="array-set">
+                                                                    <arguments>
+                                                                        <value variable="t" />
+                                                                        <value variable="p" />
+                                                                        <call function="from-ascii">
+                                                                            <arguments>
+                                                                                <call function="array-get">
+                                                                                    <arguments>
+                                                                                        <value variable="in" />
+                                                                                        <value variable="inp" />
+                                                                                    </arguments>
+                                                                                </call>
+                                                                            </arguments>
+                                                                        </call>
+                                                                    </arguments>
+                                                                </call>
+                                                                <assign variable="inp">
+                                                                    <add>
+                                                                        <value variable="inp" />
+                                                                        <integer value="1" />
+                                                                    </add>
+                                                                </assign>
                                                             </then>
                                                             <else>
                                                                 <if>
@@ -337,11 +405,7 @@
                                                                                         </while>
                                                                                     </then>
                                                                                 </if>
-        
                                                                             </then>
-                                                                            <else>
-                                                         
-                                                                            </else>
                                                                         </if>
                                                                     </else>
                                                                 </if>
@@ -363,6 +427,11 @@
                         <integer value="1" />
                     </add>
                 </assign>
+                <!-- <call function="print">
+                    <arguments>
+                        <value variable="t" />
+                    </arguments>
+                </call> -->
             </do>
         </while>
     </main>

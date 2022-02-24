@@ -24,8 +24,10 @@
                 </arguments>
             </call>
         </assign>
-        <print>
-            <value variable="b" />
-        </print>
+        <call function="print">
+            <arguments>
+                <value variable="b" />
+            </arguments>
+        </call>
     </main>
 </program>

@@ -1,0 +1,40 @@
+<program>
+    <main>
+        <call function="print">
+            <arguments>
+                <integer value="1" />
+            </arguments>
+        </call>
+        <assign variable="arr">
+            <array>
+                <float value="0.1" />
+            </array>
+        </assign>
+        <call function="array-set">
+            <arguments>
+                <value variable="arr" />
+                <integer value="0" />
+                <float value="0.5" />
+            </arguments>
+        </call>
+        <each variable="v">
+            <value variable="arr" />
+            <do>
+                <call function="print">
+                    <arguments>
+                        <value variable="v" />
+                    </arguments>
+                </call>
+            </do>
+        </each>
+        <call function="print">
+            <arguments>
+                <call function="array-pop">
+                    <arguments>
+                        <value variable="arr" />
+                    </arguments>
+                </call>
+            </arguments>
+        </call>
+    </main>
+</program>

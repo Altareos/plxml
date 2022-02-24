@@ -37,6 +37,9 @@ pub enum Instruction {
     And(Vec<Instruction>),
     Or(Vec<Instruction>),
     Not(Box<Instruction>),
+    Equal(Box<Instruction>, Box<Instruction>),
+    Greater(Box<Instruction>, Box<Instruction>),
+    Lower(Box<Instruction>, Box<Instruction>),
     Call(Box<Instruction>, Vec<Instruction>),
     CallNamed(String, Vec<Instruction>),
     Return(Box<Instruction>),
@@ -51,14 +54,10 @@ pub enum Instruction {
     },
     Each(String, Box<Instruction>, Vec<Instruction>),
     While(Box<Instruction>, Vec<Instruction>),
-    Print(Box<Instruction>),
-    AssignArray(Box<Instruction>, Box<Instruction>, Box<Instruction>),
-    InsertArray(Box<Instruction>, Box<Instruction>),
 }
 
 impl Instruction {
     pub fn new(node: Node) -> Result<Instruction, Box<dyn Error>> {
-        // println!("parsing '{}'", util::tag_name(&node));
         Ok(match util::tag_name(&node).as_str() {
             "value" => Instruction::Value(
                 node.attribute("variable")
@@ -100,6 +99,39 @@ impl Instruction {
                 node.first_element_child()
                     .ok_or("missing value child element in 'not' tag")?,
             )?)),
+            "equal" => {
+                let children: Vec<Node> = node.children().filter(Node::is_element).collect();
+                if children.len() == 2 {
+                    Instruction::Equal(
+                        Box::new(Instruction::new(children[0])?),
+                        Box::new(Instruction::new(children[1])?),
+                    )
+                } else {
+                    Err("bad child count in 'equal' tag")?
+                }
+            }
+            "greater" => {
+                let children: Vec<Node> = node.children().filter(Node::is_element).collect();
+                if children.len() == 2 {
+                    Instruction::Greater(
+                        Box::new(Instruction::new(children[0])?),
+                        Box::new(Instruction::new(children[1])?),
+                    )
+                } else {
+                    Err("bad child count in 'greater' tag")?
+                }
+            }
+            "lower" => {
+                let children: Vec<Node> = node.children().filter(Node::is_element).collect();
+                if children.len() == 2 {
+                    Instruction::Lower(
+                        Box::new(Instruction::new(children[0])?),
+                        Box::new(Instruction::new(children[1])?),
+                    )
+                } else {
+                    Err("bad child count in 'lower' tag")?
+                }
+            }
             "call" => {
                 if let Some(function) = node.attribute("function") {
                     Instruction::CallNamed(
@@ -179,39 +211,6 @@ impl Instruction {
                         .ok_or("missing condition child element in 'while' tag")?,
                 )?),
                 Instruction::from_children(util::find_node(&node, "do")?)?,
-            ),
-            "print" => Instruction::Print(Box::new(Instruction::new(
-                node.first_element_child()
-                    .ok_or("missing value child element in 'print' tag")?,
-            )?)),
-            "assign-array" => Instruction::AssignArray(
-                Box::new(Instruction::new(
-                    util::find_node(&node, "array")?
-                        .first_element_child()
-                        .ok_or("missing 'array' in 'assign-array' tag")?,
-                )?),
-                Box::new(Instruction::new(
-                    util::find_node(&node, "index")?
-                        .first_element_child()
-                        .ok_or("missing 'index' in 'assign-array' tag")?,
-                )?),
-                Box::new(Instruction::new(
-                    util::find_node(&node, "value")?
-                        .first_element_child()
-                        .ok_or("missing 'value' in 'assign-array' tag")?,
-                )?),
-            ),
-            "insert-array" => Instruction::InsertArray(
-                Box::new(Instruction::new(
-                    util::find_node(&node, "array")?
-                        .first_element_child()
-                        .ok_or("missing 'array' in 'insert-array' tag")?,
-                )?),
-                Box::new(Instruction::new(
-                    util::find_node(&node, "value")?
-                        .first_element_child()
-                        .ok_or("missing 'value' in 'insert-array' tag")?,
-                )?),
             ),
             tag => Err(format!("unknown tag '{}'", tag))?,
         })
@@ -406,6 +405,61 @@ impl Instruction {
         })
     }
 
+    fn compare(v1: Value, v2: Value) -> Result<i64, Box<dyn Error>> {
+        use std::cmp::Ordering;
+        match v1 {
+            Value::Integer(i1) => match v2 {
+                Value::Integer(i2) => Ok(i1 - i2),
+                Value::Float(f2) => Ok(
+                    match (i1 as f64)
+                        .partial_cmp(&f2)
+                        .ok_or("incompatible comparison values")?
+                    {
+                        Ordering::Less => -1,
+                        Ordering::Equal => 0,
+                        Ordering::Greater => 1,
+                    },
+                ),
+                _ => Err("incompatible comparison values")?,
+            },
+            Value::Float(f1) => match v2 {
+                Value::Integer(i2) => Ok(
+                    match f1
+                        .partial_cmp(&(i2 as f64))
+                        .ok_or("incompatible comparison values")?
+                    {
+                        Ordering::Less => -1,
+                        Ordering::Equal => 0,
+                        Ordering::Greater => 1,
+                    },
+                ),
+                Value::Float(f2) => Ok(
+                    match f1
+                        .partial_cmp(&f2)
+                        .ok_or("incompatible comparison values")?
+                    {
+                        Ordering::Less => -1,
+                        Ordering::Equal => 0,
+                        Ordering::Greater => 1,
+                    },
+                ),
+                _ => Err("incompatible comparison values")?,
+            },
+            Value::String(s1) => {
+                if let Value::String(s2) = v2 {
+                    Ok(match s1.cmp(&s2) {
+                        Ordering::Less => -1,
+                        Ordering::Equal => 0,
+                        Ordering::Greater => 1,
+                    })
+                } else {
+                    Err("incompatible comparison values")?
+                }
+            }
+            _ => Err("incompatible comparison values")?,
+        }
+    }
+
     fn run_all(
         ins: &Vec<Instruction>,
         ctx: &mut Context,
@@ -470,6 +524,39 @@ impl Instruction {
                         .ok_or("invalid child value in 'not' tag")?
                         .to_bool()
                     {
+                        0
+                    } else {
+                        1
+                    },
+                )),
+                Instruction::Equal(v1, v2) => Some(Value::Integer(
+                    if Instruction::compare(
+                        v1.run(ctx)?.ok_or("invalid child value in 'equal' tag")?,
+                        v2.run(ctx)?.ok_or("invalid child value in 'equal' tag")?,
+                    )? == 0
+                    {
+                        1
+                    } else {
+                        0
+                    },
+                )),
+                Instruction::Greater(v1, v2) => Some(Value::Integer(
+                    if Instruction::compare(
+                        v1.run(ctx)?.ok_or("invalid child value in 'equal' tag")?,
+                        v2.run(ctx)?.ok_or("invalid child value in 'equal' tag")?,
+                    )? > 0
+                    {
+                        1
+                    } else {
+                        0
+                    },
+                )),
+                Instruction::Lower(v1, v2) => Some(Value::Integer(
+                    if Instruction::compare(
+                        v1.run(ctx)?.ok_or("invalid child value in 'equal' tag")?,
+                        v2.run(ctx)?.ok_or("invalid child value in 'equal' tag")?,
+                    )? < 0
+                    {
                         1
                     } else {
                         0
@@ -483,6 +570,8 @@ impl Instruction {
                         .ok_or("invalid child function in 'call' tag")?;
                     if let Value::Function(f) = fct_val {
                         f.run(vals, ctx)?
+                    } else if let Value::StdFunction(f) = fct_val {
+                        f(vals)?
                     } else {
                         Err("invalid function")?
                     }
@@ -494,6 +583,8 @@ impl Instruction {
                     if let Value::Function(f) = fct_val {
                         let mut local = ctx.clone();
                         f.run(vals, &mut local)?
+                    } else if let Value::StdFunction(f) = fct_val {
+                        f(vals)?
                     } else {
                         Err("invalid function")?
                     }
@@ -586,38 +677,6 @@ impl Instruction {
                     }
                     None
                 }
-                Instruction::Print(ins) => {
-                    match ins.run(ctx)?.ok_or("invalid child value in 'print' tag")? {
-                        Value::Integer(i) => println!("{}", i),
-                        Value::Float(f) => println!("{}", f),
-                        Value::String(s) => println!("{}", s),
-                        _ => Err("Unprintable value")?,
-                    };
-                    None
-                }
-                Instruction::AssignArray(array_ins, index_ins, value_ins) => {
-                    if let Some(Value::Array(vec)) = array_ins.run(ctx)? {
-                        if let Some(Value::Integer(index)) = index_ins.run(ctx)? {
-                            vec.borrow_mut().insert(
-                                index.try_into()?,
-                                value_ins
-                                    .run(ctx)?
-                                    .ok_or("invalid 'value' value in 'assign-array' tag")?,
-                            );
-                        }
-                    }
-                    None
-                }
-                Instruction::InsertArray(array_ins, value_ins) => {
-                    if let Some(Value::Array(vec)) = array_ins.run(ctx)? {
-                        vec.borrow_mut().push(
-                            value_ins
-                                .run(ctx)?
-                                .ok_or("invalid 'value' value in 'insert-array' tag")?,
-                        );
-                    }
-                    None
-                }
             }
         } else {
             None
@@ -658,6 +717,7 @@ pub enum Value {
     String(String),
     Array(Rc<RefCell<Vec<Value>>>),
     Function(Function),
+    StdFunction(fn(Vec<Value>) -> Result<Option<Value>, Box<dyn Error>>),
 }
 
 impl Value {
@@ -701,12 +761,165 @@ impl Context {
     }
 }
 
+mod stl {
+    use super::*;
+    use std::io;
+
+    pub fn inject_all(ctx: &mut Context) {
+        ctx.assign(String::from("print"), Value::StdFunction(print));
+        ctx.assign(String::from("input"), Value::StdFunction(input));
+        ctx.assign(
+            String::from("string-split"),
+            Value::StdFunction(string_split),
+        );
+        ctx.assign(String::from("array-set"), Value::StdFunction(array_set));
+        ctx.assign(String::from("array-push"), Value::StdFunction(array_push));
+        ctx.assign(String::from("array-pop"), Value::StdFunction(array_pop));
+        ctx.assign(String::from("array-get"), Value::StdFunction(array_get));
+        ctx.assign(String::from("array-length"), Value::StdFunction(array_length));
+    }
+
+    fn print(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
+        if vals.len() == 1 {
+            match &vals[0] {
+                Value::Integer(i) => println!("{}", i),
+                Value::Float(f) => println!("{}", f),
+                Value::String(s) => println!("{}", s),
+                v => println!("{:?}", v)
+                // _ => Err("unprintable value")?,
+            };
+            Ok(Some(vals[0].clone()))
+        } else {
+            Err("bad argument count in call to 'print'")?
+        }
+    }
+
+    fn input(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
+        if vals.len() == 0 {
+            let mut line = String::new();
+            io::stdin().read_line(&mut line)?;
+            line.pop();
+            Ok(Some(Value::String(line)))
+        } else {
+            Err("bad argument count in call to 'input'")?
+        }
+    }
+
+    fn string_split(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
+        if vals.len() == 2 {
+            if let Value::String(s) = &vals[0] {
+                if let Value::String(d) = &vals[1] {
+                    let mut v = s.split(d)
+                            .map(|sub| Value::String(sub.to_string()))
+                            .collect::<Vec<Value>>();
+                    v.remove(0);
+                    v.pop();
+                    Ok(Some(Value::Array(Rc::new(RefCell::new(v)))))
+                } else {
+                    Err("invalid delimiter string in call to 'string-split'")?
+                }
+            } else {
+                Err("invalid target string in call to 'string-split'")?
+            }
+        } else {
+            Err("bad argument count in call to 'string-split'")?
+        }
+    }
+
+    fn array_set(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
+        if vals.len() == 3 {
+            if let Value::Array(v) = &vals[0] {
+                if let Value::Integer(i) = &vals[1] {
+                    let index: usize = (*i).try_into()?;
+                    if v.borrow().len() > index {
+                        v.borrow_mut()[index] = vals[2].clone();
+                        Ok(None)
+                    } else {
+                        Err("index out of array in call to 'array-set'")?
+                    }
+                } else {
+                    Err("invalid index in call to 'array-set'")?
+                }
+            } else {
+                Err("invalid array in call to 'array-set'")?
+            }
+        } else {
+            Err("bad argument count in call to 'array-set'")?
+        }
+    }
+
+    fn array_push(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
+        if vals.len() == 2 {
+            if let Value::Array(v) = &vals[0] {
+                v.borrow_mut().push(vals[1].clone());
+                Ok(None)
+            } else {
+                Err("invalid array in call to 'array-push'")?
+            }
+        } else {
+            Err("bad argument count in call to 'array-push'")?
+        }
+    }
+
+    fn array_pop(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
+        if vals.len() == 1 {
+            if let Value::Array(v) = &vals[0] {
+                Ok(Some(
+                    v.borrow_mut()
+                        .pop()
+                        .ok_or("empty array in call to 'array-pop'")?,
+                ))
+            } else {
+                Err("invalid array in call to 'array-pop'")?
+            }
+        } else {
+            Err("bad argument count in call to 'array-pop'")?
+        }
+    }
+
+    fn array_get(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
+        if vals.len() == 2 {
+            if let Value::Array(v) = &vals[0] {
+                if let Value::Integer(i) = &vals[1] {
+                    let index: usize = (*i).try_into()?;
+                    if v.borrow().len() > index {
+                        Ok(Some(v.borrow_mut()[index].clone()))
+                    } else {
+                        Err("index out of array in call to 'array-get'")?
+                    }
+                } else {
+                    Err("invalid index in call to 'array-get'")?
+                }
+            } else {
+                Err("invalid array in call to 'array-get'")?
+            }
+        } else {
+            Err("bad argument count in call to 'array-get'")?
+        }
+    }
+
+    fn array_length(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
+        if vals.len() == 1 {
+            if let Value::Array(v) = &vals[0] {
+                Ok(Some(
+                    Value::Integer(v.borrow().len() as i64)
+                ))
+            } else {
+                Err("invalid array in call to 'array-length'")?
+            }
+        } else {
+            Err("bad argument count in call to 'array-length'")?
+        }
+    }
+}
+
 pub fn run(filename: &str) -> Result<(), Box<dyn Error>> {
     let contents = fs::read_to_string(filename)?;
     let doc = Document::parse(&contents)?;
     let root = doc.root();
 
     let mut ctx = Context::new(None);
+    stl::inject_all(&mut ctx);
 
     let main = root
         .first_element_child()

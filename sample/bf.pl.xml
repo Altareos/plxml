@@ -1,0 +1,369 @@
+<program name="brainfuck">
+    <main>
+        <assign variable="prog">
+            <call function="string-split">
+                <arguments>
+                    <call function="input">
+                        <arguments />
+                    </call>
+                    <string value="" />
+                </arguments>
+            </call>
+        </assign>
+        <assign variable="i">
+            <integer value="0" />
+        </assign>
+        <assign variable="p">
+            <integer value="0" />
+        </assign>
+        <assign variable="t">
+            <array />
+        </assign>
+        <for variable="_">
+            <from><integer value="0" /></from>
+            <to><integer value="100" /></to>
+            <step><integer value="1" /></step>
+            <do>
+                <call function="array-push">
+                    <arguments>
+                        <value variable="t" />
+                        <integer value="0" />
+                    </arguments>
+                </call>
+            </do>
+        </for>
+        <while>
+            <not>
+                <equal>
+                    <value variable="i" />
+                    <call function="array-length">
+                        <arguments>
+                            <value variable="prog" />
+                        </arguments>
+                    </call>
+                </equal>
+            </not>
+            <do>
+                <assign variable="c">
+                    <call function="array-get">
+                        <arguments>
+                            <value variable="prog" />
+                            <value variable="i" />
+                        </arguments>
+                    </call>
+                </assign>
+                <if>
+                    <equal>
+                        <string value="+" />
+                        <value variable="c" />
+                    </equal>
+                    <then>
+                        <call function="array-set">
+                            <arguments>
+                                <value variable="t" />
+                                <value variable="p" />
+                                <add>
+                                    <call function="array-get">
+                                        <arguments>
+                                            <value variable="t" />
+                                            <value variable="p" />
+                                        </arguments>
+                                    </call>
+                                    <integer value="1" />
+                                </add>
+                            </arguments>
+                        </call>
+                    </then>
+                    <else>
+                        <if>
+                            <equal>
+                                <string value="-" />
+                                <value variable="c" />
+                            </equal>
+                            <then>
+                                <call function="array-set">
+                                    <arguments>
+                                        <value variable="t" />
+                                        <value variable="p" />
+                                        <subtract>
+                                            <call function="array-get">
+                                                <arguments>
+                                                    <value variable="t" />
+                                                    <value variable="p" />
+                                                </arguments>
+                                            </call>
+                                            <integer value="1" />
+                                        </subtract>
+                                    </arguments>
+                                </call>
+                            </then>
+                            <else>
+                                <if>
+                                    <equal>
+                                        <string value=">" />
+                                        <value variable="c" />
+                                    </equal>
+                                    <then>
+                                        <assign variable="p">
+                                            <add>
+                                                <value variable="p" />
+                                                <integer value="1" />
+                                            </add>
+                                        </assign>
+                                    </then>
+                                    <else>
+                                        <if>
+                                            <equal>
+                                                <string value="&lt;" />
+                                                <value variable="c" />
+                                            </equal>
+                                            <then>
+                                                <assign variable="p">
+                                                    <subtract>
+                                                        <value variable="p" />
+                                                        <integer value="1" />
+                                                    </subtract>
+                                                </assign>
+                                            </then>
+                                            <else>
+                                                <if>
+                                                    <equal>
+                                                        <string value="." />
+                                                        <value variable="c" />
+                                                    </equal>
+                                                    <then>
+                                                        <call function="print">
+                                                            <arguments>
+                                                                <call function="array-get">
+                                                                    <arguments>
+                                                                        <value variable="t" />
+                                                                        <value variable="p" />
+                                                                    </arguments>
+                                                                </call>
+                                                            </arguments>
+                                                        </call>
+                                                    </then>
+                                                    <else>
+                                                        <if>
+                                                            <equal>
+                                                                <string value="," />
+                                                                <value variable="c" />
+                                                            </equal>
+                                                            <then>
+                                                                
+                                                            </then>
+                                                            <else>
+                                                                <if>
+                                                                    <equal>
+                                                                        <string value="[" />
+                                                                        <value variable="c" />
+                                                                    </equal>
+                                                                    <then>
+                                                                        <if>
+                                                                            <not>
+                                                                                <call function="array-get">
+                                                                                    <arguments>
+                                                                                        <value variable="t" />
+                                                                                        <value variable="p" />
+                                                                                    </arguments>
+                                                                                </call>
+                                                                            </not>
+                                                                            <then>
+                                                                                <assign variable="open">
+                                                                                    <integer value="0" />
+                                                                                </assign>
+                                                                                <assign variable="i">
+                                                                                    <add>
+                                                                                        <value variable="i" />
+                                                                                        <integer value="1" />
+                                                                                    </add>
+                                                                                </assign>
+                                                                                <while>
+                                                                                    <not>
+                                                                                        <and>
+                                                                                            <equal>
+                                                                                                <value variable="open" />
+                                                                                                <integer value="0" />
+                                                                                            </equal>
+                                                                                            <equal>
+                                                                                                <call function="array-get">
+                                                                                                    <arguments>
+                                                                                                        <value variable="prog" />
+                                                                                                        <value variable="i" />
+                                                                                                    </arguments>
+                                                                                                </call>
+                                                                                                <string value="]" />
+                                                                                            </equal>
+                                                                                        </and>
+                                                                                    </not>
+                                                                                    <do>
+                                                                                        <if>
+                                                                                            <equal>
+                                                                                                <call function="array-get">
+                                                                                                    <arguments>
+                                                                                                        <value variable="prog" />
+                                                                                                        <value variable="i" />
+                                                                                                    </arguments>
+                                                                                                </call>
+                                                                                                <string value="[" />
+                                                                                            </equal>
+                                                                                            <then>
+                                                                                                <assign variable="open">
+                                                                                                    <add>
+                                                                                                        <value variable="open" />
+                                                                                                        <integer value="1" />
+                                                                                                    </add>
+                                                                                                </assign>
+                                                                                            </then>
+                                                                                        </if>
+                                                                                        <if>
+                                                                                            <equal>
+                                                                                                <call function="array-get">
+                                                                                                    <arguments>
+                                                                                                        <value variable="prog" />
+                                                                                                        <value variable="i" />
+                                                                                                    </arguments>
+                                                                                                </call>
+                                                                                                <string value="]" />
+                                                                                            </equal>
+                                                                                            <then>
+                                                                                                <assign variable="open">
+                                                                                                    <subtract>
+                                                                                                        <value variable="open" />
+                                                                                                        <integer value="1" />
+                                                                                                    </subtract>
+                                                                                                </assign>
+                                                                                            </then>
+                                                                                        </if>
+                                                                                        <assign variable="i">
+                                                                                            <add>
+                                                                                                <value variable="i" />
+                                                                                                <integer value="1" />
+                                                                                            </add>
+                                                                                        </assign>
+                                                                                    </do>
+                                                                                </while>
+                                                                            </then>
+                                                                        </if>
+                                                                    </then>
+                                                                    <else>
+                                                                        <if>
+                                                                            <equal>
+                                                                                <string value="]" />
+                                                                                <value variable="c" />
+                                                                            </equal>
+                                                                            <then>
+                                                                                <if>
+                                                                                    <call function="array-get">
+                                                                                        <arguments>
+                                                                                            <value variable="t" />
+                                                                                            <value variable="p" />
+                                                                                        </arguments>
+                                                                                    </call>
+                                                                                    <then>
+                                                                                        <assign variable="open">
+                                                                                            <integer value="0" />
+                                                                                        </assign>
+                                                                                        <assign variable="i">
+                                                                                            <subtract>
+                                                                                                <value variable="i" />
+                                                                                                <integer value="1" />
+                                                                                            </subtract>
+                                                                                        </assign>
+                                                                                        <while>
+                                                                                            <not>
+                                                                                                <and>
+                                                                                                    <equal>
+                                                                                                        <value variable="open" />
+                                                                                                        <integer value="0" />
+                                                                                                    </equal>
+                                                                                                    <equal>
+                                                                                                        <call function="array-get">
+                                                                                                            <arguments>
+                                                                                                                <value variable="prog" />
+                                                                                                                <value variable="i" />
+                                                                                                            </arguments>
+                                                                                                        </call>
+                                                                                                        <string value="[" />
+                                                                                                    </equal>
+                                                                                                </and>
+                                                                                            </not>
+                                                                                            <do>
+                                                                                                <if>
+                                                                                                    <equal>
+                                                                                                        <call function="array-get">
+                                                                                                            <arguments>
+                                                                                                                <value variable="prog" />
+                                                                                                                <value variable="i" />
+                                                                                                            </arguments>
+                                                                                                        </call>
+                                                                                                        <string value="[" />
+                                                                                                    </equal>
+                                                                                                    <then>
+                                                                                                        <assign variable="open">
+                                                                                                            <subtract>
+                                                                                                                <value variable="open" />
+                                                                                                                <integer value="1" />
+                                                                                                            </subtract>
+                                                                                                        </assign>
+                                                                                                    </then>
+                                                                                                </if>
+                                                                                                <if>
+                                                                                                    <equal>
+                                                                                                        <call function="array-get">
+                                                                                                            <arguments>
+                                                                                                                <value variable="prog" />
+                                                                                                                <value variable="i" />
+                                                                                                            </arguments>
+                                                                                                        </call>
+                                                                                                        <string value="]" />
+                                                                                                    </equal>
+                                                                                                    <then>
+                                                                                                        <assign variable="open">
+                                                                                                            <add>
+                                                                                                                <value variable="open" />
+                                                                                                                <integer value="1" />
+                                                                                                            </add>
+                                                                                                        </assign>
+                                                                                                    </then>
+                                                                                                </if>
+                                                                                                <assign variable="i">
+                                                                                                    <subtract>
+                                                                                                        <value variable="i" />
+                                                                                                        <integer value="1" />
+                                                                                                    </subtract>
+                                                                                                </assign>
+                                                                                            </do>
+                                                                                        </while>
+                                                                                    </then>
+                                                                                </if>
+        
+                                                                            </then>
+                                                                            <else>
+                                                         
+                                                                            </else>
+                                                                        </if>
+                                                                    </else>
+                                                                </if>
+                                                            </else>
+                                                        </if>
+                                                    </else>
+                                                </if>
+                                            </else>
+                                        </if>
+                                    </else>
+                                </if>
+                            </else>
+                        </if>
+                    </else>
+                </if>
+                <assign variable="i">
+                    <add>
+                        <value variable="i" />
+                        <integer value="1" />
+                    </add>
+                </assign>
+            </do>
+        </while>
+    </main>
+</program>

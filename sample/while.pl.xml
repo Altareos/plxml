@@ -6,9 +6,11 @@
         <while>
             <value variable="a" />
             <do>
-                <print>
-                    <value variable="a" />
-                </print>
+                <call function="print">
+                    <arguments>
+                        <value variable="a" />
+                    </arguments>
+                </call>
                 <assign variable="a">
                     <subtract>
                         <value variable="a" />

@@ -3,14 +3,18 @@
         <if>
             <integer value="1" />
             <then>
-                <print>
-                    <string value="TRUE" />
-                </print>
+                <call function="print">
+                    <arguments>
+                        <string value="TRUE" />
+                    </arguments>
+                </call>
             </then>
             <else>
-                <print>
+                <call function="print">
+                    <arguments>
                         <string value="FALSE" />
-                </print>
+                    </arguments>
+                </call>
             </else>
         </if>
     </main>

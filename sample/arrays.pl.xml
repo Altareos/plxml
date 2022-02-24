@@ -32,29 +32,35 @@
             <to><integer value="3" /></to>
             <step><integer value="1" /></step>
             <do>
-                <insert-array>
-                    <array><value variable="a" /></array>
-                    <value><value variable="i" /></value>
-                </insert-array>
+                <call function="array-push">
+                    <arguments>
+                        <value variable="a" />
+                        <value variable="i" />
+                    </arguments>
+                </call>
             </do>
         </for>
-        <print>
-            <call function="sum">
-                <arguments>
-                    <value variable="a" />
-                </arguments>
-            </call>
-        </print>
-        <print>
-            <call function="sum">
-                <arguments>
-                    <array>
-                        <integer value="11"/>
-                        <integer value="13"/>
-                        <integer value="12"/>
-                    </array>
-                </arguments>
-            </call>
-        </print>
+        <call function="print">
+            <arguments>
+                <call function="sum">
+                    <arguments>
+                        <value variable="a" />
+                    </arguments>
+                </call>
+            </arguments>
+        </call>
+        <call function="print">
+            <arguments>
+                <call function="sum">
+                    <arguments>
+                        <array>
+                            <integer value="11"/>
+                            <integer value="13"/>
+                            <integer value="12"/>
+                        </array>
+                    </arguments>
+                </call>
+            </arguments>
+        </call>
     </main>
 </program>

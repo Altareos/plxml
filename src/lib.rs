@@ -27,8 +27,11 @@ pub enum Instruction {
     Value(String),
     Assign(String, Box<Instruction>),
     Integer(String),
+    IntegerCast(Box<Instruction>),
     Float(String),
+    FloatCast(Box<Instruction>),
     String(String),
+    StringCast(Box<Instruction>),
     Array(Vec<Instruction>),
     Add(Vec<Instruction>),
     Subtract(Vec<Instruction>),
@@ -74,20 +77,45 @@ impl Instruction {
                         .ok_or("missing child on 'assign' tag")?,
                 )?),
             ),
-            "integer" => Instruction::Integer(
-                node.attribute("value")
-                    .ok_or("missing 'value' attribute on 'integer' tag")?
-                    .parse()?,
-            ),
-            "float" => Instruction::Float(
-                node.attribute("value")
-                    .ok_or("missing 'value' attribute on 'float' tag")?
-                    .parse()?,
-            ),
-            "string" => Instruction::String(String::from(
-                node.attribute("value")
-                    .ok_or("missing 'value' attribute on 'string' tag")?,
-            )),
+            "integer" => node
+                .attribute("value")
+                .and_then(|v| Some(Some(Ok(Instruction::Integer(String::from(v))))))
+                .or_else(|| {
+                    Some(node.first_element_child().and_then(|n| {
+                        Some(
+                            Instruction::new(n)
+                                .and_then(|ins| Ok(Instruction::IntegerCast(Box::new(ins)))),
+                        )
+                    }))
+                })
+                .ok_or("missing 'value' attribute or child in 'integer' tag")?
+                .ok_or("missing 'value' attribute or child in 'integer' tag")??,
+            "float" => node
+                .attribute("value")
+                .and_then(|v| Some(Some(Ok(Instruction::Float(String::from(v))))))
+                .or_else(|| {
+                    Some(node.first_element_child().and_then(|n| {
+                        Some(
+                            Instruction::new(n)
+                                .and_then(|ins| Ok(Instruction::FloatCast(Box::new(ins)))),
+                        )
+                    }))
+                })
+                .ok_or("missing 'value' attribute or child in 'float' tag")?
+                .ok_or("missing 'value' attribute or child in 'float' tag")??,
+            "string" => node
+                .attribute("value")
+                .and_then(|v| Some(Some(Ok(Instruction::String(String::from(v))))))
+                .or_else(|| {
+                    Some(node.first_element_child().and_then(|n| {
+                        Some(
+                            Instruction::new(n)
+                                .and_then(|ins| Ok(Instruction::StringCast(Box::new(ins)))),
+                        )
+                    }))
+                })
+                .ok_or("missing 'value' attribute or child in 'string' tag")?
+                .ok_or("missing 'value' attribute or child in 'string' tag")??,
             "array" => Instruction::Array(Instruction::from_children(node)?),
             "add" => Instruction::Add(Instruction::from_children(node)?),
             "subtract" => Instruction::Subtract(Instruction::from_children(node)?),
@@ -482,8 +510,32 @@ impl Instruction {
                     None
                 }
                 Instruction::Integer(val) => Some(Value::Integer(val.parse()?)),
+                Instruction::IntegerCast(ins) => Some(
+                    Value::Integer(match ins.run(ctx)?.ok_or("no value to be cast to 'integer'")? {
+                        Value::Integer(i) => i,
+                        Value::Float(f) => f as i64,
+                        Value::String(s) => s.parse()?,
+                        _ => Err("value cannot be cast to 'integer'")?
+                    })
+                ),
                 Instruction::Float(val) => Some(Value::Float(val.parse()?)),
+                Instruction::FloatCast(ins) => Some(
+                    Value::Float(match ins.run(ctx)?.ok_or("no value to be cast to 'float'")? {
+                        Value::Integer(i) => i as f64,
+                        Value::Float(f) => f,
+                        Value::String(s) => s.parse()?,
+                        _ => Err("value cannot be cast to 'float'")?
+                    })
+                ),
                 Instruction::String(val) => Some(Value::String(val.clone())),
+                Instruction::StringCast(ins) => Some(
+                    Value::String(match ins.run(ctx)?.ok_or("no value to be cast to 'string'")? {
+                        Value::Integer(i) => i.to_string(),
+                        Value::Float(f) => f.to_string(),
+                        Value::String(s) => s,
+                        _ => Err("value cannot be cast to 'string'")?
+                    })
+                ),
                 Instruction::Array(args) => Some(Value::Array(Rc::new(RefCell::new(
                     Instruction::run_all(args, ctx)?
                         .ok_or("invalid child values in 'array' tag")?,
@@ -776,7 +828,10 @@ mod stl {
         ctx.assign(String::from("array-push"), Value::StdFunction(array_push));
         ctx.assign(String::from("array-pop"), Value::StdFunction(array_pop));
         ctx.assign(String::from("array-get"), Value::StdFunction(array_get));
-        ctx.assign(String::from("array-length"), Value::StdFunction(array_length));
+        ctx.assign(
+            String::from("array-length"),
+            Value::StdFunction(array_length),
+        );
     }
 
     fn print(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
@@ -785,8 +840,7 @@ mod stl {
                 Value::Integer(i) => println!("{}", i),
                 Value::Float(f) => println!("{}", f),
                 Value::String(s) => println!("{}", s),
-                v => println!("{:?}", v)
-                // _ => Err("unprintable value")?,
+                v => println!("{:?}", v), // _ => Err("unprintable value")?,
             };
             Ok(Some(vals[0].clone()))
         } else {
@@ -809,9 +863,10 @@ mod stl {
         if vals.len() == 2 {
             if let Value::String(s) = &vals[0] {
                 if let Value::String(d) = &vals[1] {
-                    let mut v = s.split(d)
-                            .map(|sub| Value::String(sub.to_string()))
-                            .collect::<Vec<Value>>();
+                    let mut v = s
+                        .split(d)
+                        .map(|sub| Value::String(sub.to_string()))
+                        .collect::<Vec<Value>>();
                     v.remove(0);
                     v.pop();
                     Ok(Some(Value::Array(Rc::new(RefCell::new(v)))))
@@ -901,9 +956,7 @@ mod stl {
     fn array_length(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
         if vals.len() == 1 {
             if let Value::Array(v) = &vals[0] {
-                Ok(Some(
-                    Value::Integer(v.borrow().len() as i64)
-                ))
+                Ok(Some(Value::Integer(v.borrow().len() as i64)))
             } else {
                 Err("invalid array in call to 'array-length'")?
             }

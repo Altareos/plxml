@@ -1,3 +1,7 @@
+use super::error::{
+    BadChildCount, IncompatibleValues, InvalidValue, MissingAttribute, MissingChild,
+    UnknownVariable,
+};
 use super::{util, Context, Value};
 use roxmltree::Node;
 use std::cell::RefCell;
@@ -47,16 +51,16 @@ impl Instruction {
             "value" => Instruction::Value(
                 node.attribute("variable")
                     .and_then(|a| Some(String::from(a)))
-                    .ok_or("missing 'variable' attribute on 'value' tag")?,
+                    .ok_or(MissingAttribute("value", "variable"))?,
             ),
             "assign" => Instruction::Assign(
                 String::from(
                     node.attribute("variable")
-                        .ok_or("missing 'variable' attribute on 'assign' tag")?,
+                        .ok_or(MissingAttribute("assign", "variable"))?,
                 ),
                 Box::new(Instruction::new(
                     node.first_element_child()
-                        .ok_or("missing child on 'assign' tag")?,
+                        .ok_or(MissingChild("assign", "value"))?,
                 )?),
             ),
             "integer" => {
@@ -65,7 +69,7 @@ impl Instruction {
                 } else if let Some(n) = node.first_element_child() {
                     Instruction::IntegerCast(Box::new(Instruction::new(n)?))
                 } else {
-                    Err("missing 'value' attribute or child in 'integer' tag")?
+                    Err(MissingAttribute("integer", "value"))?
                 }
             }
             "float" => {
@@ -74,7 +78,7 @@ impl Instruction {
                 } else if let Some(n) = node.first_element_child() {
                     Instruction::FloatCast(Box::new(Instruction::new(n)?))
                 } else {
-                    Err("missing 'value' attribute or child in 'float' tag")?
+                    Err(MissingAttribute("float", "value"))?
                 }
             }
             "string" => {
@@ -83,7 +87,7 @@ impl Instruction {
                 } else if let Some(n) = node.first_element_child() {
                     Instruction::StringCast(Box::new(Instruction::new(n)?))
                 } else {
-                    Err("missing 'value' attribute or child in 'string' tag")?
+                    Err(MissingAttribute("string", "value"))?
                 }
             }
             "array" => Instruction::Array(Instruction::from_children(node)?),
@@ -95,7 +99,7 @@ impl Instruction {
             "or" => Instruction::Or(Instruction::from_children(node)?),
             "not" => Instruction::Not(Box::new(Instruction::new(
                 node.first_element_child()
-                    .ok_or("missing value child element in 'not' tag")?,
+                    .ok_or(MissingAttribute("not", "value"))?,
             )?)),
             "equal" => {
                 let children: Vec<Node> = node.children().filter(Node::is_element).collect();
@@ -105,7 +109,7 @@ impl Instruction {
                         Box::new(Instruction::new(children[1])?),
                     )
                 } else {
-                    Err("bad child count in 'equal' tag")?
+                    Err(BadChildCount("equal", children.len()))?
                 }
             }
             "greater" => {
@@ -116,7 +120,7 @@ impl Instruction {
                         Box::new(Instruction::new(children[1])?),
                     )
                 } else {
-                    Err("bad child count in 'greater' tag")?
+                    Err(BadChildCount("greater", children.len()))?
                 }
             }
             "lower" => {
@@ -127,7 +131,7 @@ impl Instruction {
                         Box::new(Instruction::new(children[1])?),
                     )
                 } else {
-                    Err("bad child count in 'lower' tag")?
+                    Err(BadChildCount("lower", children.len()))?
                 }
             }
             "call" => {
@@ -136,36 +140,35 @@ impl Instruction {
                         String::from(function),
                         Instruction::from_children(
                             util::find_node(&node, "arguments")
-                                .ok_or("missing 'arguments' block in 'call' tag")?,
+                                .ok_or(MissingChild("call", "arguments"))?,
                         )?,
                     )
                 } else {
                     Instruction::Call(
                         Box::new(Instruction::new(
                             node.first_element_child()
-                                .ok_or("missing function child element in 'call' tag")?,
+                                .ok_or(MissingChild("call", "function"))?,
                         )?),
                         Instruction::from_children(
                             util::find_node(&node, "arguments")
-                                .ok_or("missing 'arguments' block in 'call' tag")?,
+                                .ok_or(MissingChild("call", "arguments"))?,
                         )?,
                     )
                 }
             }
             "return" => Instruction::Return(Box::new(Instruction::new(
                 node.first_element_child()
-                    .ok_or("missing value child element in 'return' tag")?,
+                    .ok_or(MissingChild("return", "value"))?,
             )?)),
             "if" => {
                 if let Some(else_node) = node.children().find(|n| util::tag_name(n) == "else") {
                     Instruction::IfElse(
                         Box::new(Instruction::new(
                             node.first_element_child()
-                                .ok_or("missing condition child element in 'if' tag")?,
+                                .ok_or(MissingChild("if", "condition"))?,
                         )?),
                         Instruction::from_children(
-                            util::find_node(&node, "then")
-                                .ok_or("missing 'then' block in 'if' tag")?,
+                            util::find_node(&node, "then").ok_or(MissingChild("if", "then"))?,
                         )?,
                         Instruction::from_children(else_node)?,
                     )
@@ -173,11 +176,10 @@ impl Instruction {
                     Instruction::If(
                         Box::new(Instruction::new(
                             node.first_element_child()
-                                .ok_or("missing condition child element in 'if' tag")?,
+                                .ok_or(MissingChild("if", "condition"))?,
                         )?),
                         Instruction::from_children(
-                            util::find_node(&node, "then")
-                                .ok_or("missing 'then' block in 'if' tag")?,
+                            util::find_node(&node, "then").ok_or(MissingChild("if", "then"))?,
                         )?,
                     )
                 }
@@ -185,47 +187,47 @@ impl Instruction {
             "for" => Instruction::For {
                 variable: String::from(
                     node.attribute("variable")
-                        .ok_or("missing 'variable' attribute on 'for' tag")?,
+                        .ok_or(MissingAttribute("for", "variable"))?,
                 ),
                 from: Box::new(Instruction::new(
                     util::find_node(&node, "from")
                         .and_then(|n| n.first_element_child())
-                        .ok_or("missing 'from' child in 'for' tag")?,
+                        .ok_or(MissingChild("for", "from"))?,
                 )?),
                 to: Box::new(Instruction::new(
                     util::find_node(&node, "to")
                         .and_then(|n| n.first_element_child())
-                        .ok_or("missing 'to' child in 'for' tag")?,
+                        .ok_or(MissingChild("for", "to"))?,
                 )?),
                 step: Box::new(Instruction::new(
                     util::find_node(&node, "step")
                         .and_then(|n| n.first_element_child())
-                        .ok_or("missing 'step' child in 'for' tag")?,
+                        .ok_or(MissingChild("for", "step"))?,
                 )?),
                 body: Instruction::from_children(
-                    util::find_node(&node, "do").ok_or("missing 'do' block in 'for' tag")?,
+                    util::find_node(&node, "do").ok_or(MissingChild("for", "do"))?,
                 )?,
             },
             "each" => Instruction::Each(
                 String::from(
                     node.attribute("variable")
-                        .ok_or("missing 'variable' attribute on 'each' tag")?,
+                        .ok_or(MissingAttribute("each", "variable"))?,
                 ),
                 Box::new(Instruction::new(
                     node.first_element_child()
-                        .ok_or("missing array child element in 'for' tag")?,
+                        .ok_or(MissingChild("each", "array"))?,
                 )?),
                 Instruction::from_children(
-                    util::find_node(&node, "do").ok_or("missing 'do' block in 'each' tag")?,
+                    util::find_node(&node, "do").ok_or(MissingChild("each", "from"))?,
                 )?,
             ),
             "while" => Instruction::While(
                 Box::new(Instruction::new(
                     node.first_element_child()
-                        .ok_or("missing condition child element in 'while' tag")?,
+                        .ok_or(MissingChild("while", "condition"))?,
                 )?),
                 Instruction::from_children(
-                    util::find_node(&node, "do").ok_or("missing 'do' block in 'while' tag")?,
+                    util::find_node(&node, "do").ok_or(MissingChild("while", "from"))?,
                 )?,
             ),
             tag => Err(format!("unknown tag '{}'", tag))?,
@@ -247,7 +249,7 @@ impl Instruction {
                         if let Value::Integer(i) = v {
                             Ok(i)
                         } else {
-                            Err("invalid value")?
+                            Err(InvalidValue("add"))?
                         }
                     })
                     .sum::<Result<i64, Box<dyn Error>>>()?,
@@ -264,7 +266,7 @@ impl Instruction {
                         } else if let Value::Float(f) = v {
                             Ok(*f)
                         } else {
-                            Err("invalid value")?
+                            Err(InvalidValue("add"))?
                         }
                     })
                     .sum::<Result<f64, Box<dyn Error>>>()?,
@@ -284,22 +286,22 @@ impl Instruction {
                         } else if let Value::Float(f) = v {
                             f.to_string()
                         } else {
-                            Err("invalid value")?
+                            Err(InvalidValue("add"))?
                         })
                     })
                     .collect::<Result<Vec<String>, Box<dyn Error>>>()?
                     .join(""),
             ))
         } else {
-            Err("invalid value")?
+            Err(InvalidValue("add"))?
         }
     }
 
     fn subtract(vals: Vec<Value>) -> Result<Value, Box<dyn Error>> {
         Ok(if vals.iter().all(|v| matches!(v, Value::Integer(_))) {
-            let first = match vals.first().ok_or("missing values in 'subtract' tag")? {
+            let first = match vals.first().ok_or(BadChildCount("subtract", 0usize))? {
                 Value::Integer(i) => i,
-                _ => Err("invalid value")?,
+                _ => Err(InvalidValue("subtract"))?,
             };
             Value::Integer(
                 *first
@@ -310,7 +312,7 @@ impl Instruction {
                             if let Value::Integer(i) = v {
                                 Ok(i)
                             } else {
-                                Err("invalid value")?
+                                Err(InvalidValue("subtract"))?
                             }
                         })
                         .sum::<Result<i64, Box<dyn Error>>>()?,
@@ -319,10 +321,10 @@ impl Instruction {
             .iter()
             .all(|v| matches!(v, Value::Integer(_)) || matches!(v, Value::Float(_)))
         {
-            let first = match vals.first().ok_or("not enough values in 'subtract' tag")? {
+            let first = match vals.first().ok_or(BadChildCount("subtract", 0usize))? {
                 Value::Integer(v) => *v as f64,
                 Value::Float(v) => *v,
-                _ => Err("invalid value")?,
+                _ => Err(InvalidValue("subtract"))?,
             };
             Value::Float(
                 first
@@ -333,13 +335,13 @@ impl Instruction {
                             Ok(match val {
                                 Value::Integer(v) => *v as f64,
                                 Value::Float(v) => *v,
-                                _ => Err("invalid value")?,
+                                _ => Err(InvalidValue("subtract"))?,
                             })
                         })
                         .sum::<Result<f64, Box<dyn Error>>>()?,
             )
         } else {
-            Err("invalid value")?
+            Err(InvalidValue("subtract"))?
         })
     }
 
@@ -351,7 +353,7 @@ impl Instruction {
                         if let Value::Integer(i) = v {
                             Ok(i)
                         } else {
-                            Err("invalid value")?
+                            Err(InvalidValue("multiply"))?
                         }
                     })
                     .product::<Result<i64, Box<dyn Error>>>()?,
@@ -366,13 +368,13 @@ impl Instruction {
                         Ok(match val {
                             Value::Integer(v) => *v as f64,
                             Value::Float(v) => *v,
-                            _ => Err("invalid value")?,
+                            _ => Err(InvalidValue("multiply"))?,
                         })
                     })
                     .product::<Result<f64, Box<dyn Error>>>()?,
             ))
         } else {
-            Err("invalid value")?
+            Err(InvalidValue("multiply"))?
         }
     }
 
@@ -381,10 +383,10 @@ impl Instruction {
             .iter()
             .all(|v| matches!(v, Value::Integer(_)) || matches!(v, Value::Float(_)))
         {
-            let first = match vals.first().ok_or("not enough values in 'divide' tag")? {
+            let first = match vals.first().ok_or(BadChildCount("divide", 0))? {
                 Value::Integer(v) => *v as f64,
                 Value::Float(v) => *v,
-                _ => Err("invalid value")?,
+                _ => Err(InvalidValue("divide"))?,
             };
             Ok(Value::Float(
                 first
@@ -395,13 +397,13 @@ impl Instruction {
                             Ok(match val {
                                 Value::Integer(v) => 1.0 / (*v as f64),
                                 Value::Float(v) => 1.0 / *v,
-                                _ => Err("invalid value")?,
+                                _ => Err(InvalidValue("divide"))?,
                             })
                         })
                         .product::<Result<f64, Box<dyn Error>>>()?,
             ))
         } else {
-            Err("invalid value")?
+            Err(InvalidValue("divide"))?
         }
     }
 
@@ -427,39 +429,28 @@ impl Instruction {
             Value::Integer(i1) => match v2 {
                 Value::Integer(i2) => Ok(i1 - i2),
                 Value::Float(f2) => Ok(
-                    match (i1 as f64)
-                        .partial_cmp(&f2)
-                        .ok_or("incompatible comparison values")?
-                    {
+                    match (i1 as f64).partial_cmp(&f2).ok_or(IncompatibleValues)? {
                         Ordering::Less => -1,
                         Ordering::Equal => 0,
                         Ordering::Greater => 1,
                     },
                 ),
-                _ => Err("incompatible comparison values")?,
+                _ => Err(IncompatibleValues)?,
             },
             Value::Float(f1) => match v2 {
                 Value::Integer(i2) => Ok(
-                    match f1
-                        .partial_cmp(&(i2 as f64))
-                        .ok_or("incompatible comparison values")?
-                    {
+                    match f1.partial_cmp(&(i2 as f64)).ok_or(IncompatibleValues)? {
                         Ordering::Less => -1,
                         Ordering::Equal => 0,
                         Ordering::Greater => 1,
                     },
                 ),
-                Value::Float(f2) => Ok(
-                    match f1
-                        .partial_cmp(&f2)
-                        .ok_or("incompatible comparison values")?
-                    {
-                        Ordering::Less => -1,
-                        Ordering::Equal => 0,
-                        Ordering::Greater => 1,
-                    },
-                ),
-                _ => Err("incompatible comparison values")?,
+                Value::Float(f2) => Ok(match f1.partial_cmp(&f2).ok_or(IncompatibleValues)? {
+                    Ordering::Less => -1,
+                    Ordering::Equal => 0,
+                    Ordering::Greater => 1,
+                }),
+                _ => Err(IncompatibleValues)?,
             },
             Value::String(s1) => {
                 if let Value::String(s2) = v2 {
@@ -469,10 +460,10 @@ impl Instruction {
                         Ordering::Greater => 1,
                     })
                 } else {
-                    Err("incompatible comparison values")?
+                    Err(IncompatibleValues)?
                 }
             }
-            _ => Err("incompatible comparison values")?,
+            _ => Err(IncompatibleValues)?,
         }
     }
 
@@ -486,87 +477,73 @@ impl Instruction {
     pub fn run(&self, ctx: &mut Context) -> Result<Option<Value>, Box<dyn Error>> {
         Ok(if let None = ctx.value(&String::from("__return")) {
             match self {
-                Instruction::Value(key) => Some(
-                    match ctx
-                        .value(key)
-                        .ok_or(format!("unknown variable '{}'", key))?
-                    {
+                Instruction::Value(key) => {
+                    Some(match ctx.value(key).ok_or(UnknownVariable(key.clone()))? {
                         Value::Array(vecrc) => Value::Array(Rc::clone(vecrc)),
                         val => val.clone(),
-                    },
-                ),
+                    })
+                }
                 Instruction::Assign(key, ins) => {
-                    let v = ins.run(ctx)?.ok_or("invalid child value in 'assign' tag")?;
+                    let v = ins.run(ctx)?.ok_or(InvalidValue("assign"))?;
                     ctx.assign(key.clone(), v);
                     None
                 }
                 Instruction::Integer(val) => Some(Value::Integer(val.parse()?)),
                 Instruction::IntegerCast(ins) => Some(Value::Integer(
-                    match ins.run(ctx)?.ok_or("no value to be cast to 'integer'")? {
+                    match ins.run(ctx)?.ok_or(InvalidValue("integer"))? {
                         Value::Integer(i) => i,
                         Value::Float(f) => f as i64,
                         Value::String(s) => s.parse()?,
-                        _ => Err("value cannot be cast to 'integer'")?,
+                        _ => Err(InvalidValue("integer"))?,
                     },
                 )),
                 Instruction::Float(val) => Some(Value::Float(val.parse()?)),
                 Instruction::FloatCast(ins) => Some(Value::Float(
-                    match ins.run(ctx)?.ok_or("no value to be cast to 'float'")? {
+                    match ins.run(ctx)?.ok_or(InvalidValue("float"))? {
                         Value::Integer(i) => i as f64,
                         Value::Float(f) => f,
                         Value::String(s) => s.parse()?,
-                        _ => Err("value cannot be cast to 'float'")?,
+                        _ => Err(InvalidValue("float"))?,
                     },
                 )),
                 Instruction::String(val) => Some(Value::String(val.clone())),
                 Instruction::StringCast(ins) => Some(Value::String(
-                    match ins.run(ctx)?.ok_or("no value to be cast to 'string'")? {
+                    match ins.run(ctx)?.ok_or(InvalidValue("string"))? {
                         Value::Integer(i) => i.to_string(),
                         Value::Float(f) => f.to_string(),
                         Value::String(s) => s,
-                        _ => Err("value cannot be cast to 'string'")?,
+                        _ => Err(InvalidValue("string"))?,
                     },
                 )),
                 Instruction::Array(args) => Some(Value::Array(Rc::new(RefCell::new(
-                    Instruction::run_all(args, ctx)?
-                        .ok_or("invalid child values in 'array' tag")?,
+                    Instruction::run_all(args, ctx)?.ok_or(InvalidValue("array"))?,
                 )))),
                 Instruction::Add(args) => {
-                    let vals = Instruction::run_all(args, ctx)?
-                        .ok_or("invalid child values in 'add' tag")?;
+                    let vals = Instruction::run_all(args, ctx)?.ok_or(InvalidValue("add"))?;
                     Some(Instruction::add(vals)?)
                 }
                 Instruction::Subtract(args) => {
-                    let vals = Instruction::run_all(args, ctx)?
-                        .ok_or("invalid child values in 'subtract' tag")?;
+                    let vals = Instruction::run_all(args, ctx)?.ok_or(InvalidValue("subtract"))?;
                     Some(Instruction::subtract(vals)?)
                 }
                 Instruction::Multiply(args) => {
-                    let vals = Instruction::run_all(args, ctx)?
-                        .ok_or("invalid child values in 'multiply' tag")?;
+                    let vals = Instruction::run_all(args, ctx)?.ok_or(InvalidValue("multiply"))?;
                     Some(Instruction::multiply(vals)?)
                 }
                 Instruction::Divide(args) => {
-                    let vals = Instruction::run_all(args, ctx)?
-                        .ok_or("invalid child values in 'divide' tag")?;
+                    let vals = Instruction::run_all(args, ctx)?.ok_or(InvalidValue("divide"))?;
                     Some(Instruction::divide(vals)?)
                 }
                 Instruction::And(args) => {
-                    let vals = Instruction::run_all(args, ctx)?
-                        .ok_or("invalid child values in 'and' tag")?;
+                    let vals = Instruction::run_all(args, ctx)?.ok_or(InvalidValue("and"))?;
                     Some(Instruction::and(vals))
                 }
                 Instruction::Or(args) => {
-                    let vals = Instruction::run_all(args, ctx)?
-                        .ok_or("invalid child values in 'or' tag")?;
+                    let vals = Instruction::run_all(args, ctx)?.ok_or(InvalidValue("or"))?;
                     Some(Instruction::or(vals))
                 }
                 Instruction::Not(arg) => Some(Value::Integer(
-                    if arg
-                        .run(ctx)?
-                        .ok_or("invalid child value in 'not' tag")?
-                        .to_bool()
-                    {
+                    if arg.run(ctx)?.ok_or(InvalidValue("not"))?.to_bool() {
                         0
                     } else {
                         1
@@ -574,8 +551,8 @@ impl Instruction {
                 )),
                 Instruction::Equal(v1, v2) => Some(Value::Integer(
                     if Instruction::compare(
-                        v1.run(ctx)?.ok_or("invalid child value in 'equal' tag")?,
-                        v2.run(ctx)?.ok_or("invalid child value in 'equal' tag")?,
+                        v1.run(ctx)?.ok_or(InvalidValue("equal"))?,
+                        v2.run(ctx)?.ok_or(InvalidValue("equal"))?,
                     )? == 0
                     {
                         1
@@ -585,8 +562,8 @@ impl Instruction {
                 )),
                 Instruction::Greater(v1, v2) => Some(Value::Integer(
                     if Instruction::compare(
-                        v1.run(ctx)?.ok_or("invalid child value in 'equal' tag")?,
-                        v2.run(ctx)?.ok_or("invalid child value in 'equal' tag")?,
+                        v1.run(ctx)?.ok_or(InvalidValue("greater"))?,
+                        v2.run(ctx)?.ok_or(InvalidValue("greater"))?,
                     )? > 0
                     {
                         1
@@ -596,8 +573,8 @@ impl Instruction {
                 )),
                 Instruction::Lower(v1, v2) => Some(Value::Integer(
                     if Instruction::compare(
-                        v1.run(ctx)?.ok_or("invalid child value in 'equal' tag")?,
-                        v2.run(ctx)?.ok_or("invalid child value in 'equal' tag")?,
+                        v1.run(ctx)?.ok_or(InvalidValue("lower"))?,
+                        v2.run(ctx)?.ok_or(InvalidValue("lower"))?,
                     )? < 0
                     {
                         1
@@ -606,43 +583,38 @@ impl Instruction {
                     },
                 )),
                 Instruction::Call(fct_ins, args) => {
-                    let vals = Instruction::run_all(args, ctx)?
-                        .ok_or("invalid argument values in 'call' tag")?;
-                    let fct_val = fct_ins
-                        .run(ctx)?
-                        .ok_or("invalid child function in 'call' tag")?;
+                    let vals = Instruction::run_all(args, ctx)?.ok_or(InvalidValue("call"))?;
+                    let fct_val = fct_ins.run(ctx)?.ok_or(InvalidValue("call"))?;
                     if let Value::Function(f) = fct_val {
                         f.run(vals, ctx)?
                     } else if let Value::StdFunction(f) = fct_val {
                         f(vals)?
                     } else {
-                        Err("invalid function")?
+                        Err(InvalidValue("call"))?
                     }
                 }
                 Instruction::CallNamed(fct_name, args) => {
-                    let vals: Vec<Value> = Instruction::run_all(args, ctx)?
-                        .ok_or("invalid argument values in 'or' tag")?;
-                    let fct_val = ctx.value(&fct_name).ok_or("unknown function")?;
+                    let vals: Vec<Value> =
+                        Instruction::run_all(args, ctx)?.ok_or(InvalidValue("call"))?;
+                    let fct_val = ctx
+                        .value(&fct_name)
+                        .ok_or(UnknownVariable(fct_name.clone()))?;
                     if let Value::Function(f) = fct_val {
                         let mut local = ctx.clone();
                         f.run(vals, &mut local)?
                     } else if let Value::StdFunction(f) = fct_val {
                         f(vals)?
                     } else {
-                        Err("invalid function")?
+                        Err(InvalidValue("call"))?
                     }
                 }
                 Instruction::Return(ins) => {
-                    let v = ins.run(ctx)?.ok_or("invalid child value in 'return' tag")?;
+                    let v = ins.run(ctx)?.ok_or(InvalidValue("return"))?;
                     ctx.assign(String::from("__return"), v);
                     None
                 }
                 Instruction::If(cond, then) => {
-                    if cond
-                        .run(ctx)?
-                        .ok_or("invalid condition value in 'if' tag")?
-                        .to_bool()
-                    {
+                    if cond.run(ctx)?.ok_or(InvalidValue("if"))?.to_bool() {
                         for i in then {
                             i.run(ctx)?;
                         }
@@ -650,11 +622,7 @@ impl Instruction {
                     None
                 }
                 Instruction::IfElse(cond, then, els) => {
-                    if cond
-                        .run(ctx)?
-                        .ok_or("invalid condition value in 'if' tag")?
-                        .to_bool()
-                    {
+                    if cond.run(ctx)?.ok_or(InvalidValue("if"))?.to_bool() {
                         for i in then {
                             i.run(ctx)?;
                         }
@@ -672,15 +640,9 @@ impl Instruction {
                     step,
                     body,
                 } => {
-                    if let Value::Integer(f) =
-                        from.run(ctx)?.ok_or("invalid 'from' value in 'for' tag")?
-                    {
-                        if let Value::Integer(t) =
-                            to.run(ctx)?.ok_or("invalid 'to' value in 'for' tag")?
-                        {
-                            if let Value::Integer(s) =
-                                step.run(ctx)?.ok_or("invalid 'from' value in 'for' tag")?
-                            {
+                    if let Value::Integer(f) = from.run(ctx)?.ok_or(InvalidValue("for"))? {
+                        if let Value::Integer(t) = to.run(ctx)?.ok_or(InvalidValue("for"))? {
+                            if let Value::Integer(s) = step.run(ctx)?.ok_or(InvalidValue("for"))? {
                                 for i in (f..t).step_by(s.try_into()?) {
                                     ctx.assign(variable.clone(), Value::Integer(i));
                                     for ins in body {
@@ -693,10 +655,7 @@ impl Instruction {
                     None
                 }
                 Instruction::Each(variable, array_ins, body) => {
-                    if let Value::Array(v) = array_ins
-                        .run(ctx)?
-                        .ok_or("invalid array value in 'each' tag")?
-                    {
+                    if let Value::Array(v) = array_ins.run(ctx)?.ok_or(InvalidValue("each"))? {
                         for i in v.borrow().iter() {
                             ctx.assign(variable.clone(), i.clone());
                             for ins in body {
@@ -704,16 +663,12 @@ impl Instruction {
                             }
                         }
                     } else {
-                        Err("invalid array")?
+                        Err(InvalidValue("each"))?
                     }
                     None
                 }
                 Instruction::While(cond, body) => {
-                    while cond
-                        .run(ctx)?
-                        .ok_or("invalid condition value in 'while' tag")?
-                        .to_bool()
-                    {
+                    while cond.run(ctx)?.ok_or(InvalidValue("while"))?.to_bool() {
                         for ins in body {
                             ins.run(ctx)?;
                         }

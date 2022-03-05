@@ -1,4 +1,6 @@
-use super::{Context, Instruction};
+use super::error::{BadArgumentCount, MissingChild, Unnamed};
+use super::{util, Context, Instruction};
+use roxmltree::Node;
 use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;
@@ -16,7 +18,7 @@ impl Function {
         ctx: &mut Context,
     ) -> Result<Option<Value>, Box<dyn Error>> {
         if args.len() != self.args.len() {
-            Err("not enough arguments")?;
+            Err(BadArgumentCount("function", args.len()))?
         }
         self.args
             .iter()
@@ -26,6 +28,21 @@ impl Function {
             i.run(ctx)?;
         }
         Ok(ctx.take(&String::from("__return")))
+    }
+
+    pub fn from(fun: &Node<'_, '_>) -> Result<Function, Box<dyn Error>> {
+        Ok(Function {
+            args: util::find_node(&fun, "arguments")
+                .ok_or(MissingChild("call", "arguments"))?
+                .children()
+                .filter(Node::is_element)
+                .map(|n| n.attribute("name").and_then(|s| Some(String::from(s))))
+                .collect::<Option<Vec<String>>>()
+                .ok_or(Unnamed("argument"))?,
+            ins: Instruction::from_children(
+                util::find_node(&fun, "body").ok_or(MissingChild("call", "body"))?,
+            )?,
+        })
     }
 }
 

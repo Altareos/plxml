@@ -1,3 +1,4 @@
+use super::error::{BadArgumentCount, InvalidArgument};
 use super::{Context, Value};
 use std::cell::RefCell;
 use std::error::Error;
@@ -34,7 +35,7 @@ fn print(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
         };
         Ok(Some(vals[0].clone()))
     } else {
-        Err("bad argument count in call to 'print'")?
+        Err(BadArgumentCount("print", vals.len()).into())
     }
 }
 
@@ -45,7 +46,7 @@ fn input(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
         line.pop();
         Ok(Some(Value::String(line)))
     } else {
-        Err("bad argument count in call to 'input'")?
+        Err(BadArgumentCount("input", vals.len()).into())
     }
 }
 
@@ -61,13 +62,13 @@ fn string_split(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
                 v.pop();
                 Ok(Some(Value::Array(Rc::new(RefCell::new(v)))))
             } else {
-                Err("invalid delimiter string in call to 'string-split'")?
+                Err(InvalidArgument("string-split", "delimiter").into())
             }
         } else {
-            Err("invalid target string in call to 'string-split'")?
+            Err(InvalidArgument("string-split", "target").into())
         }
     } else {
-        Err("bad argument count in call to 'string-split'")?
+        Err(BadArgumentCount("string-split", vals.len()).into())
     }
 }
 
@@ -80,16 +81,16 @@ fn array_set(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
                     v.borrow_mut()[index] = vals[2].clone();
                     Ok(None)
                 } else {
-                    Err("index out of array in call to 'array-set'")?
+                    Err(InvalidArgument("array-set", "index").into())
                 }
             } else {
-                Err("invalid index in call to 'array-set'")?
+                Err(InvalidArgument("array-set", "index").into())
             }
         } else {
-            Err("invalid array in call to 'array-set'")?
+            Err(InvalidArgument("array-set", "array").into())
         }
     } else {
-        Err("bad argument count in call to 'array-set'")?
+        Err(BadArgumentCount("array-set", vals.len()).into())
     }
 }
 
@@ -99,10 +100,10 @@ fn array_push(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
             v.borrow_mut().push(vals[1].clone());
             Ok(None)
         } else {
-            Err("invalid array in call to 'array-push'")?
+            Err(InvalidArgument("array-push", "array").into())
         }
     } else {
-        Err("bad argument count in call to 'array-push'")?
+        Err(BadArgumentCount("array-push", vals.len()).into())
     }
 }
 
@@ -112,13 +113,13 @@ fn array_pop(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
             Ok(Some(
                 v.borrow_mut()
                     .pop()
-                    .ok_or("empty array in call to 'array-pop'")?,
+                    .ok_or(InvalidArgument("array-pop", "array"))?,
             ))
         } else {
-            Err("invalid array in call to 'array-pop'")?
+            Err(InvalidArgument("array-pop", "array").into())
         }
     } else {
-        Err("bad argument count in call to 'array-pop'")?
+        Err(BadArgumentCount("array-pop", vals.len()).into())
     }
 }
 
@@ -130,16 +131,16 @@ fn array_get(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
                 if v.borrow().len() > index {
                     Ok(Some(v.borrow_mut()[index].clone()))
                 } else {
-                    Err("index out of array in call to 'array-get'")?
+                    Err(InvalidArgument("array-get", "index").into())
                 }
             } else {
-                Err("invalid index in call to 'array-get'")?
+                Err(InvalidArgument("array-get", "index").into())
             }
         } else {
-            Err("invalid array in call to 'array-get'")?
+            Err(InvalidArgument("array-set", "array").into())
         }
     } else {
-        Err("bad argument count in call to 'array-get'")?
+        Err(BadArgumentCount("array-get", vals.len()).into())
     }
 }
 
@@ -148,26 +149,26 @@ fn array_length(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
         if let Value::Array(v) = &vals[0] {
             Ok(Some(Value::Integer(v.borrow().len() as i64)))
         } else {
-            Err("invalid array in call to 'array-length'")?
+            Err(InvalidArgument("array-length", "array").into())
         }
     } else {
-        Err("bad argument count in call to 'array-length'")?
+        Err(BadArgumentCount("array-length", vals.len()).into())
     }
 }
 
 fn to_ascii(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
     if vals.len() == 1 {
         if let Value::Integer(i) = &vals[0] {
-            if i <= &255 {
+            if &0 <= i && i <= &255 {
                 Ok(Some(Value::String(String::from_utf8(vec![*i as u8])?)))
             } else {
-                Err("invalid integer in call to 'to-ascii'")?
+                Err(InvalidArgument("to-ascii", "integer").into())
             }
         } else {
-            Err("invalid argument in call to 'to-ascii'")?
+            Err(InvalidArgument("to-ascii", "integer").into())
         }
     } else {
-        Err("bad argument count in call to 'to-ascii'")?
+        Err(BadArgumentCount("to-ascii", vals.len()).into())
     }
 }
 
@@ -177,13 +178,13 @@ fn from_ascii(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
             if s.len() == 1 {
                 Ok(Some(Value::Integer(s.as_bytes()[0] as i64)))
             } else {
-                Err("invalid string in call to 'from-ascii'")?
+                Err(InvalidArgument("from-ascii", "string").into())
             }
         } else {
-            Err("invalid argument in call to 'from-ascii'")?
+            Err(InvalidArgument("from-ascii", "string").into())
         }
     } else {
-        Err("bad argument count in call to 'from-ascii'")?
+        Err(BadArgumentCount("from-ascii", vals.len()).into())
     }
 }
 
@@ -196,6 +197,6 @@ fn get_args(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
                 .collect(),
         )))))
     } else {
-        Err("bad argument count in call to 'get-args'")?
+        Err(BadArgumentCount("get-args", vals.len()).into())
     }
 }

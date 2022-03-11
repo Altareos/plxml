@@ -45,14 +45,20 @@ functions
     function functions
 
 function
-    ws "<function name=" tag ">" ws "<arguments>" arguments "</arguments>" ws "<body>" instructions "</body>" ws "</function>" ws
+    ws "<function name=" tag ">" arguments body "</function>" ws
 
 arguments
+    ws "<arguments>" arguments "</arguments>" ws
+
+_arguments
     ""
-    argument arguments
+    argument _arguments
 
 argument
     ws "<argument name=" tag "/>" ws
+
+body
+    ws "<body>" instructions "</body>" ws
 
 instructions
     ws "" ws
@@ -137,15 +143,24 @@ lower
     "<lower>" instruction instruction "</lower>"
 
 call
-    "<call function=" tag ">" ws "<arguments>" instructions "</arguments>" ws "</call>"
-    "<call>" instruction "<arguments>" instructions "</arguments>" ws "</call>"
+    "<call function=" tag ">" call_arguments "</call>"
+    "<call>" instruction call_arguments ws "</call>"
+
+call_arguments
+    ws "<arguments>" instructions "</arguments>" ws
 
 return
     "<return>" instruction "</return>"
 
 if
-    "<if>" ws instruction ws "<then>" instructions "</then>" ws "</if>"
-    "<if>" ws instruction ws "<then>" instructions "</then>" ws "<else>" instructions "</else>" ws "</if>"
+    "<if>" instruction then "</if>"
+    "<if>" instruction then else "</if>"
+
+then
+    ws "<then>" instructions "</then>" ws
+
+else
+    ws "<else>" instructions "</else>" ws
 
 each
     "<each variable=" tag ">" instruction do "</each>"

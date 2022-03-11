@@ -16,6 +16,7 @@ impl Function {
         &self,
         args: Vec<Value>,
         ctx: &mut Context,
+        globals: &Context,
     ) -> Result<Option<Value>, Box<dyn Error>> {
         if args.len() != self.args.len() {
             Err(BadArgumentCount("function", args.len()))?
@@ -25,7 +26,7 @@ impl Function {
             .zip(args.into_iter())
             .for_each(|(p, a)| ctx.assign(p.clone(), a));
         for i in self.ins.iter() {
-            i.run(ctx)?;
+            i.run(ctx, globals)?;
         }
         Ok(ctx.take(&String::from("__return")))
     }

@@ -15,9 +15,13 @@ use error::{InvalidProgram, MissingChild, Unnamed};
 use instruction::Instruction;
 use value::{Function, Value};
 
-pub fn run(filename: &str) -> Result<(), Box<dyn Error>> {
+pub fn run_file(filename: &str) -> Result<(), Box<dyn Error>> {
     let contents = fs::read_to_string(filename)?;
-    let doc = Document::parse(&contents)?;
+    run(contents)
+}
+
+pub fn run(program: String) -> Result<(), Box<dyn Error>> {
+    let doc = Document::parse(&program)?;
     let root = doc.root();
 
     let mut ctx = Context::new(None);
@@ -44,8 +48,10 @@ pub fn run(filename: &str) -> Result<(), Box<dyn Error>> {
         );
     }
 
+    let mut main_ctx = Context::new(Some(&ctx));
+
     for ins in main_ast {
-        ins.run(&mut ctx)?;
+        ins.run(&mut main_ctx, &ctx)?;
     }
 
     Ok(())

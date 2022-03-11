@@ -2,13 +2,13 @@ use super::value::Value;
 use std::collections::HashMap;
 
 #[derive(Clone)]
-pub struct Context {
+pub struct Context<'par> {
     dict: HashMap<String, Value>,
-    parent: Option<Box<Context>>,
+    parent: Option<&'par Context<'par>>,
 }
 
-impl Context {
-    pub fn new(parent: Option<Box<Context>>) -> Context {
+impl<'par> Context<'par> {
+    pub fn new(parent: Option<&'par Context<'par>>) -> Context<'par> {
         Context {
             dict: HashMap::new(),
             parent,

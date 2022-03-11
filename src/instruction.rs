@@ -470,11 +470,16 @@ impl Instruction {
     fn run_all(
         ins: &Vec<Instruction>,
         ctx: &mut Context,
+        globals: &Context,
     ) -> Result<Option<Vec<Value>>, Box<dyn Error>> {
-        ins.iter().map(|i| i.run(ctx)).collect()
+        ins.iter().map(|i| i.run(ctx, globals)).collect()
     }
 
-    pub fn run(&self, ctx: &mut Context) -> Result<Option<Value>, Box<dyn Error>> {
+    pub fn run(
+        &self,
+        ctx: &mut Context,
+        globals: &Context,
+    ) -> Result<Option<Value>, Box<dyn Error>> {
         Ok(if let None = ctx.value(&String::from("__return")) {
             match self {
                 Instruction::Value(key) => {
@@ -484,13 +489,13 @@ impl Instruction {
                     })
                 }
                 Instruction::Assign(key, ins) => {
-                    let v = ins.run(ctx)?.ok_or(InvalidValue("assign"))?;
+                    let v = ins.run(ctx, globals)?.ok_or(InvalidValue("assign"))?;
                     ctx.assign(key.clone(), v);
                     None
                 }
                 Instruction::Integer(val) => Some(Value::Integer(val.parse()?)),
                 Instruction::IntegerCast(ins) => Some(Value::Integer(
-                    match ins.run(ctx)?.ok_or(InvalidValue("integer"))? {
+                    match ins.run(ctx, globals)?.ok_or(InvalidValue("integer"))? {
                         Value::Integer(i) => i,
                         Value::Float(f) => f as i64,
                         Value::String(s) => s.parse()?,
@@ -499,7 +504,7 @@ impl Instruction {
                 )),
                 Instruction::Float(val) => Some(Value::Float(val.parse()?)),
                 Instruction::FloatCast(ins) => Some(Value::Float(
-                    match ins.run(ctx)?.ok_or(InvalidValue("float"))? {
+                    match ins.run(ctx, globals)?.ok_or(InvalidValue("float"))? {
                         Value::Integer(i) => i as f64,
                         Value::Float(f) => f,
                         Value::String(s) => s.parse()?,
@@ -508,7 +513,7 @@ impl Instruction {
                 )),
                 Instruction::String(val) => Some(Value::String(val.clone())),
                 Instruction::StringCast(ins) => Some(Value::String(
-                    match ins.run(ctx)?.ok_or(InvalidValue("string"))? {
+                    match ins.run(ctx, globals)?.ok_or(InvalidValue("string"))? {
                         Value::Integer(i) => i.to_string(),
                         Value::Float(f) => f.to_string(),
                         Value::String(s) => s,
@@ -516,34 +521,40 @@ impl Instruction {
                     },
                 )),
                 Instruction::Array(args) => Some(Value::Array(Rc::new(RefCell::new(
-                    Instruction::run_all(args, ctx)?.ok_or(InvalidValue("array"))?,
+                    Instruction::run_all(args, ctx, globals)?.ok_or(InvalidValue("array"))?,
                 )))),
                 Instruction::Add(args) => {
-                    let vals = Instruction::run_all(args, ctx)?.ok_or(InvalidValue("add"))?;
+                    let vals =
+                        Instruction::run_all(args, ctx, globals)?.ok_or(InvalidValue("add"))?;
                     Some(Instruction::add(vals)?)
                 }
                 Instruction::Subtract(args) => {
-                    let vals = Instruction::run_all(args, ctx)?.ok_or(InvalidValue("subtract"))?;
+                    let vals = Instruction::run_all(args, ctx, globals)?
+                        .ok_or(InvalidValue("subtract"))?;
                     Some(Instruction::subtract(vals)?)
                 }
                 Instruction::Multiply(args) => {
-                    let vals = Instruction::run_all(args, ctx)?.ok_or(InvalidValue("multiply"))?;
+                    let vals = Instruction::run_all(args, ctx, globals)?
+                        .ok_or(InvalidValue("multiply"))?;
                     Some(Instruction::multiply(vals)?)
                 }
                 Instruction::Divide(args) => {
-                    let vals = Instruction::run_all(args, ctx)?.ok_or(InvalidValue("divide"))?;
+                    let vals =
+                        Instruction::run_all(args, ctx, globals)?.ok_or(InvalidValue("divide"))?;
                     Some(Instruction::divide(vals)?)
                 }
                 Instruction::And(args) => {
-                    let vals = Instruction::run_all(args, ctx)?.ok_or(InvalidValue("and"))?;
+                    let vals =
+                        Instruction::run_all(args, ctx, globals)?.ok_or(InvalidValue("and"))?;
                     Some(Instruction::and(vals))
                 }
                 Instruction::Or(args) => {
-                    let vals = Instruction::run_all(args, ctx)?.ok_or(InvalidValue("or"))?;
+                    let vals =
+                        Instruction::run_all(args, ctx, globals)?.ok_or(InvalidValue("or"))?;
                     Some(Instruction::or(vals))
                 }
                 Instruction::Not(arg) => Some(Value::Integer(
-                    if arg.run(ctx)?.ok_or(InvalidValue("not"))?.to_bool() {
+                    if arg.run(ctx, globals)?.ok_or(InvalidValue("not"))?.to_bool() {
                         0
                     } else {
                         1
@@ -551,8 +562,8 @@ impl Instruction {
                 )),
                 Instruction::Equal(v1, v2) => Some(Value::Integer(
                     if Instruction::compare(
-                        v1.run(ctx)?.ok_or(InvalidValue("equal"))?,
-                        v2.run(ctx)?.ok_or(InvalidValue("equal"))?,
+                        v1.run(ctx, globals)?.ok_or(InvalidValue("equal"))?,
+                        v2.run(ctx, globals)?.ok_or(InvalidValue("equal"))?,
                     )? == 0
                     {
                         1
@@ -562,8 +573,8 @@ impl Instruction {
                 )),
                 Instruction::Greater(v1, v2) => Some(Value::Integer(
                     if Instruction::compare(
-                        v1.run(ctx)?.ok_or(InvalidValue("greater"))?,
-                        v2.run(ctx)?.ok_or(InvalidValue("greater"))?,
+                        v1.run(ctx, globals)?.ok_or(InvalidValue("greater"))?,
+                        v2.run(ctx, globals)?.ok_or(InvalidValue("greater"))?,
                     )? > 0
                     {
                         1
@@ -573,8 +584,8 @@ impl Instruction {
                 )),
                 Instruction::Lower(v1, v2) => Some(Value::Integer(
                     if Instruction::compare(
-                        v1.run(ctx)?.ok_or(InvalidValue("lower"))?,
-                        v2.run(ctx)?.ok_or(InvalidValue("lower"))?,
+                        v1.run(ctx, globals)?.ok_or(InvalidValue("lower"))?,
+                        v2.run(ctx, globals)?.ok_or(InvalidValue("lower"))?,
                     )? < 0
                     {
                         1
@@ -583,10 +594,12 @@ impl Instruction {
                     },
                 )),
                 Instruction::Call(fct_ins, args) => {
-                    let vals = Instruction::run_all(args, ctx)?.ok_or(InvalidValue("call"))?;
-                    let fct_val = fct_ins.run(ctx)?.ok_or(InvalidValue("call"))?;
+                    let vals =
+                        Instruction::run_all(args, ctx, globals)?.ok_or(InvalidValue("call"))?;
+                    let fct_val = fct_ins.run(ctx, globals)?.ok_or(InvalidValue("call"))?;
                     if let Value::Function(f) = fct_val {
-                        f.run(vals, ctx)?
+                        let mut fun_ctx = Context::new(Some(globals));
+                        f.run(vals, &mut fun_ctx, globals)?
                     } else if let Value::StdFunction(f) = fct_val {
                         f(vals)?
                     } else {
@@ -595,13 +608,13 @@ impl Instruction {
                 }
                 Instruction::CallNamed(fct_name, args) => {
                     let vals: Vec<Value> =
-                        Instruction::run_all(args, ctx)?.ok_or(InvalidValue("call"))?;
+                        Instruction::run_all(args, ctx, globals)?.ok_or(InvalidValue("call"))?;
                     let fct_val = ctx
                         .value(&fct_name)
                         .ok_or(UnknownVariable(fct_name.clone()))?;
                     if let Value::Function(f) = fct_val {
                         let mut local = ctx.clone();
-                        f.run(vals, &mut local)?
+                        f.run(vals, &mut local, globals)?
                     } else if let Value::StdFunction(f) = fct_val {
                         f(vals)?
                     } else {
@@ -609,26 +622,26 @@ impl Instruction {
                     }
                 }
                 Instruction::Return(ins) => {
-                    let v = ins.run(ctx)?.ok_or(InvalidValue("return"))?;
+                    let v = ins.run(ctx, globals)?.ok_or(InvalidValue("return"))?;
                     ctx.assign(String::from("__return"), v);
                     None
                 }
                 Instruction::If(cond, then) => {
-                    if cond.run(ctx)?.ok_or(InvalidValue("if"))?.to_bool() {
+                    if cond.run(ctx, globals)?.ok_or(InvalidValue("if"))?.to_bool() {
                         for i in then {
-                            i.run(ctx)?;
+                            i.run(ctx, globals)?;
                         }
                     }
                     None
                 }
                 Instruction::IfElse(cond, then, els) => {
-                    if cond.run(ctx)?.ok_or(InvalidValue("if"))?.to_bool() {
+                    if cond.run(ctx, globals)?.ok_or(InvalidValue("if"))?.to_bool() {
                         for i in then {
-                            i.run(ctx)?;
+                            i.run(ctx, globals)?;
                         }
                     } else {
                         for i in els {
-                            i.run(ctx)?;
+                            i.run(ctx, globals)?;
                         }
                     }
                     None
@@ -640,13 +653,17 @@ impl Instruction {
                     step,
                     body,
                 } => {
-                    if let Value::Integer(f) = from.run(ctx)?.ok_or(InvalidValue("for"))? {
-                        if let Value::Integer(t) = to.run(ctx)?.ok_or(InvalidValue("for"))? {
-                            if let Value::Integer(s) = step.run(ctx)?.ok_or(InvalidValue("for"))? {
+                    if let Value::Integer(f) = from.run(ctx, globals)?.ok_or(InvalidValue("for"))? {
+                        if let Value::Integer(t) =
+                            to.run(ctx, globals)?.ok_or(InvalidValue("for"))?
+                        {
+                            if let Value::Integer(s) =
+                                step.run(ctx, globals)?.ok_or(InvalidValue("for"))?
+                            {
                                 for i in (f..t).step_by(s.try_into()?) {
                                     ctx.assign(variable.clone(), Value::Integer(i));
                                     for ins in body {
-                                        ins.run(ctx)?;
+                                        ins.run(ctx, globals)?;
                                     }
                                 }
                             }
@@ -655,11 +672,13 @@ impl Instruction {
                     None
                 }
                 Instruction::Each(variable, array_ins, body) => {
-                    if let Value::Array(v) = array_ins.run(ctx)?.ok_or(InvalidValue("each"))? {
+                    if let Value::Array(v) =
+                        array_ins.run(ctx, globals)?.ok_or(InvalidValue("each"))?
+                    {
                         for i in v.borrow().iter() {
                             ctx.assign(variable.clone(), i.clone());
                             for ins in body {
-                                ins.run(ctx)?;
+                                ins.run(ctx, globals)?;
                             }
                         }
                     } else {
@@ -668,9 +687,13 @@ impl Instruction {
                     None
                 }
                 Instruction::While(cond, body) => {
-                    while cond.run(ctx)?.ok_or(InvalidValue("while"))?.to_bool() {
+                    while cond
+                        .run(ctx, globals)?
+                        .ok_or(InvalidValue("while"))?
+                        .to_bool()
+                    {
                         for ins in body {
-                            ins.run(ctx)?;
+                            ins.run(ctx, globals)?;
                         }
                     }
                     None

@@ -10,7 +10,7 @@ plxml
     program
 
 program
-    "<program=" tag ">" functions main functions "</program>"
+    "<program name=" tag ">" functions main functions "</program>"
 
 tag
     '"' characters '"'
@@ -111,6 +111,7 @@ string
 
 array
     "<array>" instructions "</array>"
+    "<array />"
 
 add
     "<add>" instructions "</add>"

@@ -90,6 +90,7 @@ _instruction
     for
     each
     while
+    handle
 
 value
     "<value variable=" tag "/>"
@@ -183,4 +184,13 @@ step
 
 do
     ws "<do>" instructions "</do>" ws
+
+handle
+    ws "<handle>" try catch "</handle>" ws
+
+try
+    ws "<try>" instructions "</try>" ws
+
+catch
+    ws "<catch variable=" tag ">" instructions "</catch>" ws
 ```

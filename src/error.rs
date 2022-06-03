@@ -17,7 +17,7 @@ pub struct MissingAttribute(pub &'static str, pub &'static str);
 
 impl fmt::Display for MissingAttribute {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "missing '{}' child in '{}' node", self.1, self.0)
+        write!(f, "missing '{}' attribute in '{}' node", self.1, self.0)
     }
 }
 
@@ -118,3 +118,14 @@ impl fmt::Display for UnknownVariable {
 }
 
 impl Error for UnknownVariable {}
+
+#[derive(Clone, Debug)]
+pub struct InaccessibleFile(pub String);
+
+impl fmt::Display for InaccessibleFile {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "unable to access file '{}'", self.0)
+    }
+}
+
+impl Error for InaccessibleFile {}

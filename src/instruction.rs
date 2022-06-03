@@ -43,6 +43,7 @@ pub enum Instruction {
     },
     Each(String, Box<Instruction>, Vec<Instruction>),
     While(Box<Instruction>, Vec<Instruction>),
+    Handle(Vec<Instruction>, Vec<Instruction>, String),
 }
 
 impl Instruction {
@@ -229,6 +230,19 @@ impl Instruction {
                 Instruction::from_children(
                     util::find_node(&node, "do").ok_or(MissingChild("while", "from"))?,
                 )?,
+            ),
+            "handle" => Instruction::Handle(
+                Instruction::from_children(
+                    util::find_node(&node, "try").ok_or(MissingChild("handle", "try"))?,
+                )?,
+                Instruction::from_children(
+                    util::find_node(&node, "catch").ok_or(MissingChild("handle", "try"))?,
+                )?,
+                util::find_node(&node, "catch")
+                    .ok_or(MissingChild("handle", "try"))?
+                    .attribute("variable")
+                    .ok_or(MissingAttribute("catch", "variable"))?
+                    .to_string(),
             ),
             tag => Err(format!("unknown tag '{}'", tag))?,
         })
@@ -694,6 +708,18 @@ impl Instruction {
                     {
                         for ins in body {
                             ins.run(ctx, globals)?;
+                        }
+                    }
+                    None
+                }
+                Instruction::Handle(try_block, catch_block, variable) => {
+                    for ins in try_block {
+                        if let Err(e) = ins.run(ctx, globals) {
+                            ctx.assign(variable.clone(), Value::String(e.to_string()));
+                            for ins in catch_block {
+                                ins.run(ctx, globals)?;
+                            }
+                            break;
                         }
                     }
                     None

@@ -1,3 +1,5 @@
+use crate::error::InaccessibleFile;
+
 use super::error::{BadArgumentCount, InvalidArgument};
 use super::{Context, Value};
 use std::cell::RefCell;
@@ -232,12 +234,12 @@ fn write_file(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
                     .open(path)
                 {
                     if let Ok(_) = write!(file, "{}", contents) {
-                        Ok(Some(Value::Integer(1)))
+                        Ok(None)
                     } else {
-                        Ok(Some(Value::Integer(0)))
+                        Err(InaccessibleFile(path.clone()).into())
                     }
                 } else {
-                    Ok(Some(Value::Integer(0)))
+                    Err(InaccessibleFile(path.clone()).into())
                 }
             } else {
                 Err(InvalidArgument("write-file", "string").into())
@@ -256,7 +258,7 @@ fn read_file(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
             if let Ok(contents) = fs::read_to_string(path) {
                 Ok(Some(Value::String(contents)))
             } else {
-                Ok(None)
+                Err(InaccessibleFile(path.clone()).into())
             }
         } else {
             Err(InvalidArgument("read-file", "string").into())

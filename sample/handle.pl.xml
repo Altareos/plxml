@@ -1,0 +1,26 @@
+<program name="handle">
+    <main>
+        <handle>
+            <try>
+                <integer value="non" />
+                <call function="print-line">
+                    <arguments>
+                        <string value="there is no bug" />
+                    </arguments>
+                </call>
+            </try>
+            <catch variable="err">
+                <call function="print-line">
+                    <arguments>
+                        <string value="oh no there is a bug" />
+                    </arguments>
+                </call>
+                <call function="print-line">
+                    <arguments>
+                        <value variable="err" />
+                    </arguments>
+                </call>
+            </catch>
+        </handle>
+    </main>
+</program>

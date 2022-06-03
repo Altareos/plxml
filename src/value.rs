@@ -19,7 +19,7 @@ impl Function {
         globals: &Context,
     ) -> Result<Option<Value>, Box<dyn Error>> {
         if args.len() != self.args.len() {
-            Err(BadArgumentCount("function", args.len()))?
+            Err(BadArgumentCount("function", args.len(), self.args.len()))?
         }
         self.args
             .iter()

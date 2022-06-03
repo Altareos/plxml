@@ -1,0 +1,30 @@
+<program name="files">
+    <main>
+        <assign variable="args">
+            <call function="get-args">
+                <arguments />
+            </call>
+        </assign>
+        <call function="write-file">
+            <arguments>
+                <call function="array-get">
+                    <arguments>
+                        <value variable="args" />
+                        <integer value="2" />
+                    </arguments>
+                </call>
+                <call function="read-file">
+                    <arguments>
+                        <call function="array-get">
+                            <arguments>
+                                <value variable="args" />
+                                <integer value="1" />
+                            </arguments>
+                        </call>
+                    </arguments>
+                </call>
+                <integer value="0" />
+            </arguments>
+        </call>
+    </main>
+</program>

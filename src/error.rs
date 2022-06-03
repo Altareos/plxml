@@ -24,11 +24,15 @@ impl fmt::Display for MissingAttribute {
 impl Error for MissingAttribute {}
 
 #[derive(Clone, Debug)]
-pub struct BadArgumentCount(pub &'static str, pub usize);
+pub struct BadArgumentCount(pub &'static str, pub usize, pub usize);
 
 impl fmt::Display for BadArgumentCount {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "bad argument count ({}) in call to '{}'", self.1, self.0)
+        write!(
+            f,
+            "bad argument count ({}, expected {}) in call to '{}'",
+            self.1, self.2, self.0
+        )
     }
 }
 

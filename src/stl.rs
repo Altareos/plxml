@@ -35,7 +35,7 @@ fn print(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
     if vals.len() == 1 {
         match &vals[0] {
             Value::Integer(i) => print!("{}", i),
-            Value::Float(f) => print!("{}", f),
+            Value::Real(f) => print!("{}", f),
             Value::String(s) => print!("{}", s),
             v => print!("{:?}", v), // _ => Err("unprintable value")?,
         };
@@ -50,7 +50,7 @@ fn print_line(vals: Vec<Value>) -> Result<Option<Value>, Box<dyn Error>> {
     if vals.len() == 1 {
         match &vals[0] {
             Value::Integer(i) => println!("{}", i),
-            Value::Float(f) => println!("{}", f),
+            Value::Real(f) => println!("{}", f),
             Value::String(s) => println!("{}", s),
             v => println!("{:?}", v), // _ => Err("unprintable value")?,
         };

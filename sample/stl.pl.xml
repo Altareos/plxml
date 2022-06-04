@@ -7,14 +7,14 @@
         </call>
         <assign variable="arr">
             <array>
-                <float value="0.1" />
+                <real value="0.1" />
             </array>
         </assign>
         <call function="array-set">
             <arguments>
                 <value variable="arr" />
                 <integer value="0" />
-                <float value="0.5" />
+                <real value="0.5" />
             </arguments>
         </call>
         <each variable="v">

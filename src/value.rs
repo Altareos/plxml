@@ -50,7 +50,7 @@ impl Function {
 #[derive(Clone, Debug)]
 pub enum Value {
     Integer(i64),
-    Float(f64),
+    Real(f64),
     String(String),
     Array(Rc<RefCell<Vec<Value>>>),
     Function(Function),
@@ -61,7 +61,7 @@ impl Value {
     pub fn to_bool(&self) -> bool {
         match self {
             Value::Integer(i) => *i != 0,
-            Value::Float(f) => *f != 0.0,
+            Value::Real(f) => *f != 0.0,
             Value::String(s) => s.len() != 0,
             Value::Array(v) => v.borrow().len() != 0,
             _ => true,

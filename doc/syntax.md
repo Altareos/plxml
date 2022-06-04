@@ -71,7 +71,7 @@ _instruction
     value
     assign
     integer
-    float
+    real
     string
     array
     add
@@ -102,9 +102,9 @@ integer
     "<integer value=" tag "/>"
     "<integer>" instruction "</integer>"
 
-float
-    "<float value=" tag "/>"
-    "<float>" instruction "</float>"
+real
+    "<real value=" tag "/>"
+    "<real>" instruction "</real>"
 
 string
     "<string value=" tag "/>"

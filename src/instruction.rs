@@ -14,8 +14,8 @@ pub enum Instruction {
     Assign(String, Box<Instruction>),
     Integer(String),
     IntegerCast(Box<Instruction>),
-    Float(String),
-    FloatCast(Box<Instruction>),
+    Real(String),
+    RealCast(Box<Instruction>),
     String(String),
     StringCast(Box<Instruction>),
     Array(Vec<Instruction>),
@@ -73,13 +73,13 @@ impl Instruction {
                     Err(MissingAttribute("integer", "value"))?
                 }
             }
-            "float" => {
+            "real" => {
                 if let Some(v) = node.attribute("value") {
-                    Instruction::Float(String::from(v))
+                    Instruction::Real(String::from(v))
                 } else if let Some(n) = node.first_element_child() {
-                    Instruction::FloatCast(Box::new(Instruction::new(n)?))
+                    Instruction::RealCast(Box::new(Instruction::new(n)?))
                 } else {
-                    Err(MissingAttribute("float", "value"))?
+                    Err(MissingAttribute("real", "value"))?
                 }
             }
             "string" => {
@@ -270,14 +270,14 @@ impl Instruction {
             ))
         } else if vals
             .iter()
-            .all(|v| matches!(v, Value::Integer(_)) || matches!(v, Value::Float(_)))
+            .all(|v| matches!(v, Value::Integer(_)) || matches!(v, Value::Real(_)))
         {
-            Ok(Value::Float(
+            Ok(Value::Real(
                 vals.iter()
                     .map(|v| {
                         if let Value::Integer(i) = v {
                             Ok(*i as f64)
-                        } else if let Value::Float(f) = v {
+                        } else if let Value::Real(f) = v {
                             Ok(*f)
                         } else {
                             Err(InvalidValue("add"))?
@@ -287,7 +287,7 @@ impl Instruction {
             ))
         } else if vals.iter().all(|v| {
             matches!(v, Value::Integer(_))
-                || matches!(v, Value::Float(_))
+                || matches!(v, Value::Real(_))
                 || matches!(v, Value::String(_))
         }) {
             Ok(Value::String(
@@ -297,7 +297,7 @@ impl Instruction {
                             s.to_string()
                         } else if let Value::Integer(i) = v {
                             i.to_string()
-                        } else if let Value::Float(f) = v {
+                        } else if let Value::Real(f) = v {
                             f.to_string()
                         } else {
                             Err(InvalidValue("add"))?
@@ -333,14 +333,14 @@ impl Instruction {
             )
         } else if vals
             .iter()
-            .all(|v| matches!(v, Value::Integer(_)) || matches!(v, Value::Float(_)))
+            .all(|v| matches!(v, Value::Integer(_)) || matches!(v, Value::Real(_)))
         {
             let first = match vals.first().ok_or(BadChildCount("subtract", 0usize))? {
                 Value::Integer(v) => *v as f64,
-                Value::Float(v) => *v,
+                Value::Real(v) => *v,
                 _ => Err(InvalidValue("subtract"))?,
             };
-            Value::Float(
+            Value::Real(
                 first
                     - vals
                         .iter()
@@ -348,7 +348,7 @@ impl Instruction {
                         .map(|val| {
                             Ok(match val {
                                 Value::Integer(v) => *v as f64,
-                                Value::Float(v) => *v,
+                                Value::Real(v) => *v,
                                 _ => Err(InvalidValue("subtract"))?,
                             })
                         })
@@ -374,14 +374,14 @@ impl Instruction {
             ))
         } else if vals
             .iter()
-            .all(|v| matches!(v, Value::Integer(_)) || matches!(v, Value::Float(_)))
+            .all(|v| matches!(v, Value::Integer(_)) || matches!(v, Value::Real(_)))
         {
-            Ok(Value::Float(
+            Ok(Value::Real(
                 vals.iter()
                     .map(|val| {
                         Ok(match val {
                             Value::Integer(v) => *v as f64,
-                            Value::Float(v) => *v,
+                            Value::Real(v) => *v,
                             _ => Err(InvalidValue("multiply"))?,
                         })
                     })
@@ -395,14 +395,14 @@ impl Instruction {
     fn divide(vals: Vec<Value>) -> Result<Value, Box<dyn Error>> {
         if vals
             .iter()
-            .all(|v| matches!(v, Value::Integer(_)) || matches!(v, Value::Float(_)))
+            .all(|v| matches!(v, Value::Integer(_)) || matches!(v, Value::Real(_)))
         {
             let first = match vals.first().ok_or(BadChildCount("divide", 0))? {
                 Value::Integer(v) => *v as f64,
-                Value::Float(v) => *v,
+                Value::Real(v) => *v,
                 _ => Err(InvalidValue("divide"))?,
             };
-            Ok(Value::Float(
+            Ok(Value::Real(
                 first
                     * vals
                         .iter()
@@ -410,7 +410,7 @@ impl Instruction {
                         .map(|val| {
                             Ok(match val {
                                 Value::Integer(v) => 1.0 / (*v as f64),
-                                Value::Float(v) => 1.0 / *v,
+                                Value::Real(v) => 1.0 / *v,
                                 _ => Err(InvalidValue("divide"))?,
                             })
                         })
@@ -442,7 +442,7 @@ impl Instruction {
         match v1 {
             Value::Integer(i1) => match v2 {
                 Value::Integer(i2) => Ok(i1 - i2),
-                Value::Float(f2) => Ok(
+                Value::Real(f2) => Ok(
                     match (i1 as f64).partial_cmp(&f2).ok_or(IncompatibleValues)? {
                         Ordering::Less => -1,
                         Ordering::Equal => 0,
@@ -451,7 +451,7 @@ impl Instruction {
                 ),
                 _ => Err(IncompatibleValues)?,
             },
-            Value::Float(f1) => match v2 {
+            Value::Real(f1) => match v2 {
                 Value::Integer(i2) => Ok(
                     match f1.partial_cmp(&(i2 as f64)).ok_or(IncompatibleValues)? {
                         Ordering::Less => -1,
@@ -459,7 +459,7 @@ impl Instruction {
                         Ordering::Greater => 1,
                     },
                 ),
-                Value::Float(f2) => Ok(match f1.partial_cmp(&f2).ok_or(IncompatibleValues)? {
+                Value::Real(f2) => Ok(match f1.partial_cmp(&f2).ok_or(IncompatibleValues)? {
                     Ordering::Less => -1,
                     Ordering::Equal => 0,
                     Ordering::Greater => 1,
@@ -511,25 +511,25 @@ impl Instruction {
                 Instruction::IntegerCast(ins) => Some(Value::Integer(
                     match ins.run(ctx, globals)?.ok_or(InvalidValue("integer"))? {
                         Value::Integer(i) => i,
-                        Value::Float(f) => f as i64,
+                        Value::Real(f) => f as i64,
                         Value::String(s) => s.parse()?,
                         _ => Err(InvalidValue("integer"))?,
                     },
                 )),
-                Instruction::Float(val) => Some(Value::Float(val.parse()?)),
-                Instruction::FloatCast(ins) => Some(Value::Float(
-                    match ins.run(ctx, globals)?.ok_or(InvalidValue("float"))? {
+                Instruction::Real(val) => Some(Value::Real(val.parse()?)),
+                Instruction::RealCast(ins) => Some(Value::Real(
+                    match ins.run(ctx, globals)?.ok_or(InvalidValue("real"))? {
                         Value::Integer(i) => i as f64,
-                        Value::Float(f) => f,
+                        Value::Real(f) => f,
                         Value::String(s) => s.parse()?,
-                        _ => Err(InvalidValue("float"))?,
+                        _ => Err(InvalidValue("real"))?,
                     },
                 )),
                 Instruction::String(val) => Some(Value::String(val.clone())),
                 Instruction::StringCast(ins) => Some(Value::String(
                     match ins.run(ctx, globals)?.ok_or(InvalidValue("string"))? {
                         Value::Integer(i) => i.to_string(),
-                        Value::Float(f) => f.to_string(),
+                        Value::Real(f) => f.to_string(),
                         Value::String(s) => s,
                         _ => Err(InvalidValue("string"))?,
                     },

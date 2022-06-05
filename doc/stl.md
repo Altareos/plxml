@@ -20,21 +20,19 @@ such as input/output, file access and array manipulation.
 - [WRITE-FILE](#write-file)
 - [READ-FILE](#read-file)
 
-## Functions
-
-### PRINT
+## PRINT
 
 Writes a string as-is to the standard output
 
-#### Arguments
+### Arguments
 
 - `string` value to print
 
-#### Returns
+### Returns
 
 Nothing
 
-#### Minimal example
+### Minimal example
 
 ```xml
 <call function="print">
@@ -44,19 +42,19 @@ Nothing
 </call>
 ```
 
-### PRINT-LINE
+## PRINT-LINE
 
 Writes a string to the standard output, appending a new line
 
-#### Arguments
+### Arguments
 
 - `string` value to print
 
-#### Returns
+### Returns
 
 Nothing
 
-#### Minimal example
+### Minimal example
 
 ```xml
 <call function="print-line">
@@ -66,19 +64,19 @@ Nothing
 </call>
 ```
 
-### INPUT
+## INPUT
 
 Reads from the standard input
 
-#### Arguments
+### Arguments
 
 Nothing
 
-#### Returns
+### Returns
 
 `string` value read
 
-#### Minimal example
+### Minimal example
 
 ```xml
 <call function="input">
@@ -86,19 +84,19 @@ Nothing
 </call>
 ```
 
-### STRING-SPLIT
+## STRING-SPLIT
 
 Splits a string into a vector of single-character strings
 
-#### Arguments
+### Arguments
 
 - `string` value to split
 
-#### Returns
+### Returns
 
 `array` value of strings
 
-#### Minimal examples
+### Minimal examples
 
 ```xml
 <call function="string-split">
@@ -117,21 +115,21 @@ Splits a string into a vector of single-character strings
 </call>
 ```
 
-### ARRAY-SET
+## ARRAY-SET
 
 Sets a value at a specific index of an array.
 
-#### Arguments
+### Arguments
 
 - `array` to update
 - `integer` index
 - `any` value to set
 
-#### Returns
+### Returns
 
 Nothing
 
-#### Minimal example
+### Minimal example
 
 ```xml
 <assign variable="arr">
@@ -148,20 +146,20 @@ Nothing
 </call>
 ```
 
-### ARRAY-PUSH
+## ARRAY-PUSH
 
 Pushes a value at the end of an array
 
-#### Arguments
+### Arguments
 
 - `array` to update
 - `any` value to push
 
-#### Returns
+### Returns
 
 Nothing
 
-#### Minimal example
+### Minimal example
 
 ```xml
 <assign variable="arr">
@@ -177,19 +175,19 @@ Nothing
 </call>
 ```
 
-### ARRAY-POP
+## ARRAY-POP
 
 Removes and returns the value at the end of an array
 
-#### Arguments
+### Arguments
 
 - `array` to update
 
-#### Returns
+### Returns
 
 `any` value
 
-#### Minimal example
+### Minimal example
 
 ```xml
 <assign variable="arr">
@@ -204,20 +202,20 @@ Removes and returns the value at the end of an array
 </call>
 ```
 
-### ARRAY-GET
+## ARRAY-GET
 
 Returns the value at index of an array
 
-#### Arguments
+### Arguments
 
 - `array` to query
 - `integer` index
 
-#### Returns
+### Returns
 
 `any` value
 
-#### Minimal example
+### Minimal example
 
 ```xml
 <assign variable="arr">
@@ -233,19 +231,19 @@ Returns the value at index of an array
 </call>
 ```
 
-### ARRAY-LENGTH
+## ARRAY-LENGTH
 
 Returns the length of an array
 
-#### Arguments
+### Arguments
 
 - `array` to query
 
-#### Returns
+### Returns
 
 `integer` length
 
-#### Minimal example
+### Minimal example
 
 ```xml
 <assign variable="arr">
@@ -260,19 +258,19 @@ Returns the length of an array
 </call>
 ```
 
-### TO-ASCII
+## TO-ASCII
 
 Converts an integer value into an ASCII character string
 
-#### Arguments
+### Arguments
 
 - `integer` to convert
 
-#### Returns
+### Returns
 
 `string` corresponding ASCII character
 
-#### Minimal example
+### Minimal example
 
 ```xml
 <call function="to-ascii">
@@ -282,19 +280,19 @@ Converts an integer value into an ASCII character string
 </call>
 ```
 
-### FROM-ASCII
+## FROM-ASCII
 
 Converts a one-character string into its ASCII integer value
 
-#### Arguments
+### Arguments
 
 - `string` character to convert
 
-#### Returns
+### Returns
 
 `integer` ASCII value
 
-#### Minimal example
+### Minimal example
 
 ```xml
 <call function="from-ascii">
@@ -304,19 +302,19 @@ Converts a one-character string into its ASCII integer value
 </call>
 ```
 
-### GET-ARGS
+## GET-ARGS
 
 Returns an array of arguments passed to the program
 
-#### Arguments
+### Arguments
 
 Nothing
 
-#### Returns
+### Returns
 
 `array` of strings
 
-#### Minimal example
+### Minimal example
 
 ```xml
 <call function="get-args">
@@ -324,21 +322,21 @@ Nothing
 </call>
 ```
 
-### WRITE-FILE
+## WRITE-FILE
 
 Writes a string to a file, optionally appending
 
-#### Arguments
+### Arguments
 
 - `string` filename
 - `string` to write
 - `any` falsy to replace, truthy to append
 
-#### Returns
+### Returns
 
 Nothing
 
-#### Minimal example
+### Minimal example
 
 ```xml
 <call function="write-file">
@@ -350,19 +348,19 @@ Nothing
 </call>
 ```
 
-### READ-FILE
+## READ-FILE
 
 Reads a file into a string
 
-#### Arguments
+### Arguments
 
 - `string` filename
 
-#### Returns
+### Returns
 
 - `string` file contents
 
-#### Minimal example
+### Minimal example
 
 ```xml
 <call function="read-file">

@@ -118,19 +118,19 @@ add
     "<add>" instructions "</add>"
 
 subtract
-    "<subtract>" instructions "</subtract>"
+    "<subtract>" instruction instructions "</subtract>"
 
 multiply
     "<multiply>" instructions "</multiply>"
 
 divide
-    "<divide>" instructions "</divide>"
+    "<divide>" instruction instructions "</divide>"
 
 and
-    "<and>" instructions "</and>"
+    "<and>" instruction instructions "</and>"
 
 or
-    "<or>" instructions "</or>"
+    "<or>" instruction instructions "</or>"
 
 not
     "<not>" instruction "</not>"
